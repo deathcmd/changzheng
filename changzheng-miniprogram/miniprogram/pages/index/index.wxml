@@ -1,0 +1,127 @@
+<!--pages/index/index.wxml-->
+<view class="container">
+  <!-- 顶部头像区域 -->
+  <view class="header">
+    <view class="header-bg"></view>
+    <view class="header-content">
+      <!-- 学院信息 -->
+      <view class="school-badge">
+        <text class="school-name">四川工商职业技术学院 · 智能制造与信息工程学院</text>
+      </view>
+      
+      <!-- 用户信息 -->
+      <view class="user-section" wx:if="{{isLogin}}">
+        <view class="avatar-lg">
+          <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill"/>
+          <text wx:else>{{userInfo.nickName ? userInfo.nickName[0] : '战'}}</text>
+        </view>
+        <view class="user-info">
+          <text class="nickname">{{userInfo.nickName || '长征战士'}}</text>
+          <text class="student-id" wx:if="{{userInfo.studentId}}">学号：{{userInfo.studentId}}</text>
+        </view>
+      </view>
+      
+      <!-- 未登录 -->
+      <view class="login-section" wx:else>
+        <view class="login-btn" bindtap="goLogin">
+          <text>点击登录，开启长征之旅</text>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 今日数据卡片 -->
+  <view class="data-card">
+    <view class="data-item">
+      <view class="data-value">{{todaySteps || 0}}</view>
+      <view class="data-label">今日步数</view>
+    </view>
+    <view class="data-divider"></view>
+    <view class="data-item">
+      <view class="data-value">{{todayMileage || '0.00'}}</view>
+      <view class="data-label">今日里程(km)</view>
+    </view>
+    <view class="data-divider"></view>
+    <view class="data-item">
+      <view class="data-value text-primary">{{totalMileage || '0.00'}}</view>
+      <view class="data-label">累计里程(km)</view>
+    </view>
+  </view>
+
+  <!-- 同步状态 -->
+  <view class="sync-section">
+    <view class="sync-status">
+      <text class="sync-icon">✅</text>
+      <text class="sync-text">已自动同步微信运动步数</text>
+    </view>
+    <button class="sync-btn-small" bindtap="onSyncTap" disabled="{{syncing}}">
+      <text>{{syncing ? '同步中...' : '立即刷新'}}</text>
+    </button>
+  </view>
+
+  <!-- 当前进度 -->
+  <view class="progress-card" wx:if="{{currentNode}}">
+    <view class="progress-header">
+      <text class="progress-title">当前位置</text>
+      <text class="progress-detail" bindtap="goMap">查看地图 ></text>
+    </view>
+    
+    <view class="node-info" bindtap="goCurrentNode">
+      <view class="node-icon">📍</view>
+      <view class="node-detail">
+        <text class="node-name">{{currentNode.nodeName}}</text>
+        <text class="node-desc">已完成 {{progressPercent}}%</text>
+      </view>
+      <view class="node-arrow">›</view>
+    </view>
+    
+    <!-- 进度条 -->
+    <view class="progress-bar">
+      <view class="progress-fill" style="width: {{progressPercent}}%"></view>
+    </view>
+    
+    <!-- 下一节点 -->
+    <view class="next-node" wx:if="{{nextNode}}">
+      <text class="next-label">距离下一站【{{nextNode.nodeName}}】还需</text>
+      <text class="next-distance">{{nextNode.remainingKm || 0}} km</text>
+    </view>
+  </view>
+
+  <!-- 快捷入口 -->
+  <view class="quick-entry">
+    <view class="entry-item" bindtap="goMap">
+      <view class="entry-icon">🗺️</view>
+      <text>长征地图</text>
+    </view>
+    <view class="entry-item" bindtap="goRank">
+      <view class="entry-icon">🏆</view>
+      <text>排行榜</text>
+      <view class="rank-badge" wx:if="{{myRank > 0 && myRank <= 100}}">第{{myRank}}名</view>
+    </view>
+    <view class="entry-item" bindtap="goAchievement">
+      <view class="entry-icon">🎖️</view>
+      <text>我的成就</text>
+    </view>
+    <view class="entry-item" bindtap="goHistory">
+      <view class="entry-icon">📊</view>
+      <text>运动记录</text>
+    </view>
+  </view>
+
+  <!-- 长征故事 -->
+  <view class="story-section">
+    <view class="section-header">
+      <text class="section-title">长征故事</text>
+      <text class="section-more">更多 ></text>
+    </view>
+    <view class="story-list">
+      <view class="story-item">
+        <view class="story-cover">🚩</view>
+        <view class="story-info">
+          <text class="story-title">红军长征的伟大意义</text>
+          <text class="story-desc">长征是人类历史上的伟大奇迹...</text>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

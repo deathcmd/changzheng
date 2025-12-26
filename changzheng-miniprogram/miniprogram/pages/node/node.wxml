@@ -1,0 +1,89 @@
+<!--pages/node/node.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <block wx:else>
+    <!-- 节点封面 -->
+    <view class="node-header">
+      <image 
+        class="node-cover" 
+        src="{{nodeInfo.coverUrl || '/images/node-default-cover.jpg'}}" 
+        mode="aspectFill"
+      ></image>
+      <view class="node-overlay"></view>
+      <view class="node-info">
+        <text class="node-name">{{nodeInfo.nodeName}}</text>
+        <text class="node-km">里程：{{nodeInfo.cumulativeKm}} km</text>
+      </view>
+    </view>
+
+    <!-- 节点描述 -->
+    <view class="node-desc card">
+      <view class="section-title">历史背景</view>
+      <text class="desc-text">{{nodeInfo.description || '暂无描述'}}</text>
+    </view>
+
+    <!-- 学习进度 -->
+    <view class="progress-section card">
+      <view class="progress-header">
+        <text class="section-title">学习内容</text>
+        <text class="progress-text">{{learnedCount}}/{{totalCount}}</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{progressPercent}}%"></view>
+      </view>
+    </view>
+
+    <!-- 内容列表 -->
+    <view class="content-list">
+      <view 
+        class="content-item {{item.isLearned ? 'learned' : ''}}"
+        wx:for="{{contents}}"
+        wx:key="id"
+        data-item="{{item}}"
+        bindtap="onContentTap"
+      >
+        <view class="content-left">
+          <view class="content-type {{item.contentType}}">
+            <image wx:if="{{item.contentType === 'video'}}" src="/images/icon-video.png" mode="aspectFit"></image>
+            <image wx:elif="{{item.contentType === 'audio'}}" src="/images/icon-audio.png" mode="aspectFit"></image>
+            <image wx:elif="{{item.contentType === 'quiz'}}" src="/images/icon-quiz.png" mode="aspectFit"></image>
+            <image wx:else src="/images/icon-article.png" mode="aspectFit"></image>
+          </view>
+          <view class="content-info">
+            <text class="content-title">{{item.title}}</text>
+            <view class="content-meta">
+              <text class="meta-type">{{item.contentType === 'video' ? '视频' : item.contentType === 'audio' ? '音频' : item.contentType === 'quiz' ? '答题' : '图文'}}</text>
+              <text class="meta-duration" wx:if="{{item.duration}}">{{item.duration}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="content-right">
+          <view class="learned-badge" wx:if="{{item.isLearned}}">
+            <image src="/images/icon-check-green.png" mode="aspectFit"></image>
+            <text>已学习</text>
+          </view>
+          <image wx:else class="arrow-icon" src="/images/icon-arrow-right.png" mode="aspectFit"></image>
+        </view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{contents.length === 0}}">
+        <image src="/images/empty-content.png" mode="aspectFit"></image>
+        <text>暂无学习内容</text>
+      </view>
+    </view>
+
+    <!-- 分享按钮 -->
+    <view class="share-section">
+      <button class="share-btn" open-type="share">
+        <image src="/images/icon-share.png" mode="aspectFit"></image>
+        <text>分享我的长征足迹</text>
+      </button>
+    </view>
+  </block>
+</view>

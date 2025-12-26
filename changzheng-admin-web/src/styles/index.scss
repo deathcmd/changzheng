@@ -1,0 +1,44 @@
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Element Plus 覆盖 */
+.el-card {
+  border-radius: 8px;
+}
+
+.el-table {
+  --el-table-border-color: #ebeef5;
+}
+
+/* 通用布局 */
+.page-container {
+  padding: 20px;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 表格操作列 */
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 分页容器 */
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}

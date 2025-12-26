@@ -1,0 +1,191 @@
+/* pages/history/history.wxss */
+
+.container {
+  min-height: 100vh;
+  background: #F5F5F5;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* 未登录提示 */
+.login-tip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 120rpx 40rpx;
+}
+
+.login-tip .tip-icon {
+  font-size: 80rpx;
+  margin-bottom: 24rpx;
+}
+
+.login-tip .tip-text {
+  font-size: 28rpx;
+  color: #999999;
+  margin-bottom: 40rpx;
+}
+
+.login-tip .login-btn {
+  background: linear-gradient(135deg, #C41E3A, #E8505B);
+  color: #FFFFFF;
+  border-radius: 40rpx;
+  padding: 20rpx 60rpx;
+  font-size: 28rpx;
+}
+
+/* 统计卡片 */
+.stats-card {
+  margin: 24rpx;
+  background: linear-gradient(135deg, #C41E3A, #E8505B);
+  border-radius: 20rpx;
+  padding: 32rpx;
+  color: #FFFFFF;
+}
+
+.stats-header {
+  margin-bottom: 24rpx;
+}
+
+.stats-title {
+  font-size: 30rpx;
+  font-weight: bold;
+}
+
+.stats-grid {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stats-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.stats-value {
+  font-size: 40rpx;
+  font-weight: bold;
+}
+
+.stats-label {
+  font-size: 22rpx;
+  opacity: 0.8;
+  margin-top: 8rpx;
+}
+
+/* 换算提示 */
+.convert-tip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16rpx;
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.convert-tip .tip-icon {
+  margin-right: 8rpx;
+}
+
+/* 记录列表 */
+.record-list {
+  margin: 24rpx;
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  overflow: hidden;
+}
+
+.list-header {
+  padding: 24rpx 32rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.list-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.loading-tip {
+  padding: 60rpx;
+  text-align: center;
+  color: #999999;
+  font-size: 28rpx;
+}
+
+/* 记录项 */
+.record-item {
+  display: flex;
+  align-items: center;
+  padding: 28rpx 32rpx;
+  border-bottom: 1rpx solid #F5F5F5;
+}
+
+.record-item:last-child {
+  border-bottom: none;
+}
+
+.record-item:active {
+  background: #F9F9F9;
+}
+
+.record-date {
+  width: 140rpx;
+  display: flex;
+  flex-direction: column;
+}
+
+.date-text {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333333;
+}
+
+.week-text {
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 4rpx;
+}
+
+.record-data {
+  flex: 1;
+  display: flex;
+  justify-content: space-around;
+}
+
+.data-row {
+  display: flex;
+  align-items: center;
+}
+
+.data-icon {
+  font-size: 28rpx;
+  margin-right: 8rpx;
+}
+
+.data-value {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #C41E3A;
+}
+
+.data-unit {
+  font-size: 22rpx;
+  color: #999999;
+  margin-left: 4rpx;
+}
+
+.record-arrow {
+  font-size: 32rpx;
+  color: #CCCCCC;
+}
+
+/* 列表底部 */
+.list-footer {
+  padding: 32rpx;
+  text-align: center;
+  font-size: 24rpx;
+  color: #CCCCCC;
+}

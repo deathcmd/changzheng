@@ -1,0 +1,233 @@
+<!--pages/map/map.wxml-->
+<view class="container">
+  <!-- 视图切换 -->
+  <view class="view-tabs">
+    <view class="tab-item {{viewMode === 'map' ? 'active' : ''}}" bindtap="switchView" data-mode="map">
+      <text>地图视图</text>
+    </view>
+    <view class="tab-item {{viewMode === 'list' ? 'active' : ''}}" bindtap="switchView" data-mode="list">
+      <text>列表视图</text>
+    </view>
+  </view>
+
+  <!-- 地图视图 -->
+  <block wx:if="{{viewMode === 'map'}}">
+    <view class="map-container">
+      <map
+        id="marchMap"
+        class="march-map"
+        longitude="{{mapCenter.longitude}}"
+        latitude="{{mapCenter.latitude}}"
+        scale="{{mapScale}}"
+        markers="{{markers}}"
+        polyline="{{polyline}}"
+        show-location="{{false}}"
+        enable-scroll="{{true}}"
+        enable-zoom="{{true}}"
+        bindmarkertap="onMarkerTap"
+        bindregionchange="onRegionChange"
+      ></map>
+      
+      <!-- 地图控件 -->
+      <view class="map-controls">
+        <view class="control-btn" bindtap="zoomIn">
+          <text>+</text>
+        </view>
+        <view class="control-btn" bindtap="zoomOut">
+          <text>-</text>
+        </view>
+        <view class="control-btn" bindtap="resetMap">
+          <image src="/images/icon-reset.png" mode="aspectFit"></image>
+        </view>
+      </view>
+      
+      <!-- 进度信息卡片 -->
+      <view class="progress-card">
+        <view class="progress-header">
+          <text class="progress-title">长征进度</text>
+          <text class="progress-value">{{progressPercent}}%</text>
+        </view>
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{progressPercent}}%"></view>
+        </view>
+        <view class="progress-stats">
+          <view class="stat-item">
+            <text class="stat-value">{{currentMileage || 0}}</text>
+            <text class="stat-label">已行进(km)</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-value">{{unlockedCount}}/{{totalNodes}}</text>
+            <text class="stat-label">解锁节点</text>
+          </view>
+          <view class="stat-item">
+            <text class="stat-value">{{remainingMileage}}</text>
+            <text class="stat-label">剩余(km)</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 节点详情弹窗 -->
+      <view class="node-popup {{selectedNode ? 'show' : ''}}" catchtap="closePopup">
+        <view class="popup-content" catchtap="stopPropagation" wx:if="{{selectedNode}}">
+          <view class="popup-header">
+            <text class="popup-title">{{selectedNode.nodeName}}</text>
+            <view class="popup-close" bindtap="closePopup">×</view>
+          </view>
+          <view class="popup-body">
+            <text class="popup-km">里程：{{selectedNode.cumulativeKm}} km</text>
+            <text class="popup-desc">{{selectedNode.description}}</text>
+          </view>
+          <view class="popup-footer">
+            <button 
+              class="popup-btn {{selectedNode.isUnlocked ? 'primary' : 'disabled'}}"
+              bindtap="goNodeDetail"
+              disabled="{{!selectedNode.isUnlocked}}"
+            >
+              {{selectedNode.isUnlocked ? '查看详情' : '未解锁'}}
+            </button>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 图例 -->
+      <view class="map-legend">
+        <view class="legend-item">
+          <view class="legend-dot unlocked"></view>
+          <text>已解锁</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot current"></view>
+          <text>当前位置</text>
+        </view>
+        <view class="legend-item">
+          <view class="legend-dot locked"></view>
+          <text>未解锁</text>
+        </view>
+      </view>
+    </view>
+  </block>
+
+  <!-- 列表视图 -->
+  <block wx:if="{{viewMode === 'list'}}">
+    <!-- 顶部统计 -->
+    <view class="stats-header">
+      <view class="stats-bg"></view>
+      <view class="stats-content">
+        <view class="stats-main">
+          <view class="stats-mileage">
+            <text class="mileage-value">{{currentMileage || 0}}</text>
+            <text class="mileage-unit">km</text>
+          </view>
+          <text class="stats-label">已行进里程</text>
+        </view>
+        <view class="stats-info">
+          <view class="info-item">
+            <text class="info-value">{{unlockedCount}}/{{totalNodes}}</text>
+            <text class="info-label">已解锁节点</text>
+          </view>
+          <view class="info-item">
+            <text class="info-value">{{remainingMileage}}</text>
+            <text class="info-label">剩余里程(km)</text>
+          </view>
+        </view>
+      </view>
+    </view>
+
+    <!-- 进度条 -->
+    <view class="progress-section">
+      <view class="progress-info">
+        <text class="progress-start">瑞金</text>
+        <text class="progress-percent">{{progressPercent}}%</text>
+        <text class="progress-end">会宁</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{progressPercent}}%"></view>
+      </view>
+    </view>
+
+  <!-- 节点列表 -->
+  <scroll-view 
+    class="node-list" 
+    scroll-y 
+    scroll-top="{{scrollTop}}"
+    enhanced="{{true}}"
+    show-scrollbar="{{false}}"
+  >
+    <view class="timeline">
+      <!-- 起点 -->
+      <view class="timeline-start">
+        <view class="start-dot"></view>
+        <text class="start-text">长征起点 · 1934年10月</text>
+      </view>
+      
+      <!-- 节点 -->
+      <view 
+        class="node-item {{node.isUnlocked ? 'unlocked' : 'locked'}} {{node.isCurrent ? 'current' : ''}}"
+        wx:for="{{nodes}}"
+        wx:key="id"
+        wx:for-item="node"
+        data-node="{{node}}"
+        bindtap="onNodeTap"
+      >
+        <!-- 时间线 -->
+        <view class="node-timeline">
+          <view class="timeline-line top"></view>
+          <view class="timeline-dot {{node.isUnlocked ? 'active' : ''}}">
+            <image 
+              wx:if="{{node.isUnlocked}}" 
+              src="/images/icon-check.png" 
+              mode="aspectFit"
+            ></image>
+            <image 
+              wx:elif="{{node.isCurrent}}" 
+              src="/images/icon-location.png" 
+              mode="aspectFit"
+            ></image>
+          </view>
+          <view class="timeline-line bottom"></view>
+        </view>
+        
+        <!-- 节点内容 -->
+        <view class="node-content">
+          <view class="node-header">
+            <text class="node-name">{{node.nodeName}}</text>
+            <text class="node-km">{{node.cumulativeKm}} km</text>
+          </view>
+          <text class="node-desc">{{node.description || '解锁后查看详情'}}</text>
+          
+          <!-- 当前位置标记 -->
+          <view class="current-badge" wx:if="{{node.isCurrent}}">
+            <text>当前位置</text>
+          </view>
+          
+          <!-- 锁定状态 -->
+          <view class="lock-info" wx:if="{{!node.isUnlocked && !node.isCurrent}}">
+            <image src="/images/icon-lock.png" mode="aspectFit"></image>
+            <text>还需 {{node.remainingKm}} km 解锁</text>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 终点 -->
+      <view class="timeline-end">
+        <view class="end-dot"></view>
+        <text class="end-text">长征胜利 · 会宁会师</text>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 定位按钮 -->
+  <view class="locate-btn" bindtap="locateToMe" wx:if="{{currentNodeIndex >= 0}}">
+    <image src="/images/icon-locate.png" mode="aspectFit"></image>
+  </view>
+  </block>
+
+  <!-- 未登录提示 -->
+  <view class="login-overlay" wx:if="{{!isLogin}}" catchtap="goLogin">
+    <view class="login-card">
+      <image src="/images/icon-login.png" mode="aspectFit"></image>
+      <text class="login-title">登录查看您的长征进度</text>
+      <view class="login-btn">立即登录</view>
+    </view>
+  </view>
+</view>

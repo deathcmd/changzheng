@@ -1,0 +1,103 @@
+<!--pages/bind/bind.wxml-->
+<view class="container">
+  <!-- 学院信息 -->
+  <view class="header">
+    <view class="school-logo">🎓</view>
+    <text class="school-name">四川工商职业技术学院</text>
+    <text class="college-name">智能制造与信息工程学院</text>
+  </view>
+
+  <!-- 已绑定状态 -->
+  <view class="bound-section" wx:if="{{isBound}}">
+    <view class="bound-card">
+      <view class="bound-header">
+        <text class="bound-icon">✅</text>
+        <text class="bound-title">已完成学生认证</text>
+      </view>
+      
+      <view class="info-list">
+        <view class="info-item">
+          <text class="info-label">学号</text>
+          <text class="info-value">{{boundInfo.studentNo}}</text>
+        </view>
+        <view class="info-item">
+          <text class="info-label">姓名</text>
+          <text class="info-value">{{boundInfo.name}}</text>
+        </view>
+        <view class="info-item" wx:if="{{boundInfo.grade}}">
+          <text class="info-label">年级</text>
+          <text class="info-value">{{boundInfo.grade}}</text>
+        </view>
+        <view class="info-item" wx:if="{{boundInfo.major}}">
+          <text class="info-label">专业</text>
+          <text class="info-value">{{boundInfo.major}}</text>
+        </view>
+        <view class="info-item" wx:if="{{boundInfo.className}}">
+          <text class="info-label">班级</text>
+          <text class="info-value">{{boundInfo.className}}</text>
+        </view>
+        <view class="info-item" wx:if="{{boundInfo.college}}">
+          <text class="info-label">学院</text>
+          <text class="info-value">{{boundInfo.college}}</text>
+        </view>
+      </view>
+      
+      <view class="bound-tip">
+        <text>📌 学生认证后不可解除，如有问题请联系辅导员</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未绑定状态 - 认证表单 -->
+  <view class="form-section" wx:else>
+    <view class="form-card">
+      <view class="form-title">
+        <text class="title-icon">📋</text>
+        <text>学生身份认证</text>
+      </view>
+      
+      <view class="form-tips">
+        <text>请输入您的学号和姓名完成认证</text>
+        <text>认证后可参与班级、专业排行榜</text>
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">学号</text>
+        <input 
+          class="form-input" 
+          type="number" 
+          placeholder="请输入学号" 
+          value="{{studentNo}}"
+          bindinput="onStudentNoInput"
+          maxlength="20"
+        />
+      </view>
+      
+      <view class="form-item">
+        <text class="form-label">姓名</text>
+        <input 
+          class="form-input" 
+          type="text" 
+          placeholder="请输入真实姓名" 
+          value="{{name}}"
+          bindinput="onNameInput"
+          maxlength="20"
+        />
+      </view>
+      
+      <button 
+        class="submit-btn" 
+        bindtap="onSubmit"
+        loading="{{loading}}"
+        disabled="{{loading}}"
+      >
+        {{loading ? '认证中...' : '提交认证'}}
+      </button>
+    </view>
+    
+    <view class="notice">
+      <text class="notice-icon">💡</text>
+      <text class="notice-text">学号和姓名需与学院导入的信息一致，如有问题请联系辅导员</text>
+    </view>
+  </view>
+</view>

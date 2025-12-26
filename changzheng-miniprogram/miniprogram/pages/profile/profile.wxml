@@ -1,0 +1,46 @@
+<!--pages/profile/profile.wxml-->
+<view class="container">
+  <view class="header">
+    <text class="title">编辑个人资料</text>
+    <text class="subtitle">设置您的头像和昵称</text>
+  </view>
+
+  <!-- 头像设置 -->
+  <view class="form-card">
+    <view class="form-item avatar-item">
+      <text class="form-label">头像</text>
+      <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+        <view class="avatar-wrapper">
+          <image wx:if="{{tempAvatarUrl}}" class="avatar-img" src="{{tempAvatarUrl}}" mode="aspectFill"/>
+          <text wx:else class="avatar-placeholder">点击更换</text>
+        </view>
+        <text class="avatar-tip">点击更换头像</text>
+      </button>
+    </view>
+
+    <!-- 昵称设置 -->
+    <view class="form-item">
+      <text class="form-label">昵称</text>
+      <input 
+        class="form-input"
+        type="nickname"
+        placeholder="请输入昵称"
+        value="{{tempNickName}}"
+        bindinput="onNickNameInput"
+        bindblur="onNickNameBlur"
+      />
+    </view>
+  </view>
+
+  <!-- 提示信息 -->
+  <view class="tips">
+    <text class="tip-text">• 头像和昵称将展示在排行榜中</text>
+    <text class="tip-text">• 请勿使用违规内容作为头像或昵称</text>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="btn-group">
+    <button class="btn-save" bindtap="onSave" loading="{{loading}}">保存</button>
+    <button class="btn-cancel" bindtap="onCancel">取消</button>
+  </view>
+</view>

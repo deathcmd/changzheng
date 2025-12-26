@@ -1,0 +1,261 @@
+version: '3.8'
+
+services:
+  # MySQL数据库
+  mysql:
+    image: mysql:8.0
+    container_name: changzheng-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      MYSQL_DATABASE: changzheng_db
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    networks:
+      - changzheng-net
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: changzheng-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    networks:
+      - changzheng-net
+
+  # Nacos注册/配置中心
+  nacos:
+    image: nacos/nacos-server:v2.3.0
+    container_name: changzheng-nacos
+    restart: always
+    environment:
+      MODE: standalone
+      SPRING_DATASOURCE_PLATFORM: mysql
+      MYSQL_SERVICE_HOST: mysql
+      MYSQL_SERVICE_PORT: 3306
+      MYSQL_SERVICE_USER: root
+      MYSQL_SERVICE_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      MYSQL_SERVICE_DB_NAME: nacos_config
+      JVM_XMS: 256m
+      JVM_XMX: 512m
+    ports:
+      - "8848:8848"
+      - "9848:9848"
+    depends_on:
+      - mysql
+    networks:
+      - changzheng-net
+
+  # RocketMQ NameServer
+  rocketmq-namesrv:
+    image: apache/rocketmq:5.1.3
+    container_name: changzheng-rocketmq-namesrv
+    restart: always
+    ports:
+      - "9876:9876"
+    command: sh mqnamesrv
+    volumes:
+      - rocketmq_namesrv_logs:/home/rocketmq/logs
+    networks:
+      - changzheng-net
+
+  # RocketMQ Broker
+  rocketmq-broker:
+    image: apache/rocketmq:5.1.3
+    container_name: changzheng-rocketmq-broker
+    restart: always
+    ports:
+      - "10909:10909"
+      - "10911:10911"
+    environment:
+      NAMESRV_ADDR: rocketmq-namesrv:9876
+    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf
+    volumes:
+      - rocketmq_broker_logs:/home/rocketmq/logs
+      - rocketmq_broker_store:/home/rocketmq/store
+    depends_on:
+      - rocketmq-namesrv
+    networks:
+      - changzheng-net
+
+  # API网关
+  gateway:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.gateway
+    container_name: changzheng-gateway
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      NACOS_SERVER: nacos:8848
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:-changzheng-cloud-march-secret-key-2024-very-long}
+    depends_on:
+      - nacos
+      - redis
+    networks:
+      - changzheng-net
+
+  # 认证服务
+  auth-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.auth
+    container_name: changzheng-auth
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      NACOS_SERVER: nacos:8848
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      REDIS_HOST: redis
+      JWT_SECRET: ${JWT_SECRET:-changzheng-cloud-march-secret-key-2024-very-long}
+      WX_APPID: ${WX_APPID}
+      WX_SECRET: ${WX_SECRET}
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    networks:
+      - changzheng-net
+
+  # 运动服务
+  sport-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.sport
+    container_name: changzheng-sport
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      NACOS_SERVER: nacos:8848
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      REDIS_HOST: redis
+      ROCKETMQ_NAMESRV: rocketmq-namesrv:9876
+      ROCKETMQ_ENABLED: "true"
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+      - rocketmq-broker
+    networks:
+      - changzheng-net
+
+  # 内容服务
+  content-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.content
+    container_name: changzheng-content
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      NACOS_SERVER: nacos:8848
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      REDIS_HOST: redis
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    networks:
+      - changzheng-net
+
+  # 排行服务
+  rank-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.rank
+    container_name: changzheng-rank
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      NACOS_SERVER: nacos:8848
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      REDIS_HOST: redis
+      ROCKETMQ_NAMESRV: rocketmq-namesrv:9876
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+      - rocketmq-broker
+    networks:
+      - changzheng-net
+
+  # 管理服务
+  admin-service:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.admin
+    container_name: changzheng-admin
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      NACOS_SERVER: nacos:8848
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: root
+      MYSQL_PASSWORD: ${MYSQL_ROOT_PASSWORD:-changzheng123}
+      REDIS_HOST: redis
+    depends_on:
+      - nacos
+      - mysql
+      - redis
+    networks:
+      - changzheng-net
+
+  # Nginx反向代理
+  nginx:
+    image: nginx:alpine
+    container_name: changzheng-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./docker/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./docker/nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./docker/nginx/ssl:/etc/nginx/ssl:ro
+      - ./changzheng-admin-web/dist:/usr/share/nginx/html/admin:ro
+      - nginx_logs:/var/log/nginx
+    depends_on:
+      - gateway
+    networks:
+      - changzheng-net
+
+volumes:
+  mysql_data:
+  redis_data:
+  rocketmq_namesrv_logs:
+  rocketmq_broker_logs:
+  rocketmq_broker_store:
+  nginx_logs:
+
+networks:
+  changzheng-net:
+    driver: bridge
