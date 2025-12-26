@@ -320,4 +320,4 @@ cd changzheng-common && mvn clean install
 
 ---
 
-如有问题，请联系项目开发团队或辅导员。
+如有问题，请联系项目开发作者。
