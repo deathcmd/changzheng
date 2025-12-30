@@ -1,0 +1,140 @@
+<!--pages/authorize/authorize.wxml-->
+<view class="container">
+  <!-- 登录步骤 -->
+  <block wx:if="{{step === 'login'}}">
+    <!-- Logo -->
+    <view class="logo-section">
+      <view class="logo-icon">🚩</view>
+      <text class="app-name">云上重走长征路</text>
+      <text class="app-slogan">用脚步丈量长征精神</text>
+      <text class="school-info">四川工商职业技术学院</text>
+      <text class="college-info">智能制造与信息工程学院</text>
+    </view>
+
+    <!-- 功能说明 -->
+    <view class="features">
+      <view class="feature-item">
+        <text class="feature-icon">📱</text>
+        <text>同步微信运动步数</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">🗺️</text>
+        <text>重走二万五千里长征路</text>
+      </view>
+      <view class="feature-item">
+        <text class="feature-icon">📚</text>
+        <text>解锁节点学习红色历史</text>
+      </view>
+    </view>
+
+    <!-- 登录按钮 -->
+    <view class="login-section">
+      <button 
+        class="login-btn {{loading ? 'loading' : ''}} {{!agreed ? 'disabled' : ''}}" 
+        bindtap="onWxLogin"
+        disabled="{{loading || !agreed}}"
+      >
+        <text class="btn-icon" wx:if="{{!loading}}">🟢</text>
+        <text>{{loading ? '登录中...' : '微信一键登录'}}</text>
+      </button>
+
+      <!-- 协议 -->
+      <view class="agreement">
+        <checkbox-group bindchange="onAgreeChange">
+          <label class="agreement-label">
+            <checkbox value="agree" checked="{{agreed}}" color="#C41E3A"/>
+            <text>我已阅读并同意</text>
+          </label>
+        </checkbox-group>
+        <text class="link" bindtap="onViewAgreement">《用户协议》</text>
+        <text>和</text>
+        <text class="link" bindtap="onViewPrivacy">《隐私政策》</text>
+      </view>
+    </view>
+  </block>
+
+  <!-- 设置头像昵称步骤 -->
+  <block wx:if="{{step === 'profile'}}">
+    <view class="profile-section">
+      <view class="profile-header">
+        <text class="profile-title">设置头像和昵称</text>
+        <text class="profile-desc">设置您的头像和昵称用于排行榜展示</text>
+      </view>
+
+      <view class="profile-form">
+        <!-- 头像选择 -->
+        <view class="avatar-section">
+          <button class="avatar-btn" open-type="chooseAvatar" bindchooseavatar="onChooseAvatar">
+            <image wx:if="{{tempAvatarUrl}}" class="avatar-img" src="{{tempAvatarUrl}}" mode="aspectFill"/>
+            <view wx:else class="avatar-placeholder">
+              <text>📷</text>
+              <text class="avatar-tip">点击选择头像</text>
+            </view>
+          </button>
+        </view>
+
+        <!-- 昵称输入 -->
+        <view class="form-item">
+          <text class="form-label">昵称</text>
+          <input 
+            class="form-input" 
+            type="nickname" 
+            placeholder="请输入昵称"
+            value="{{tempNickName}}"
+            bindinput="onNickNameInput"
+            bindblur="onNickNameBlur"
+          />
+        </view>
+      </view>
+
+      <view class="profile-actions">
+        <button class="profile-btn primary" bindtap="onSaveProfile">
+          保存并继续
+        </button>
+        <button class="profile-btn secondary" bindtap="onSkipProfile">
+          暂时跳过
+        </button>
+      </view>
+    </view>
+  </block>
+
+  <!-- 绑定学号步骤 -->
+  <block wx:if="{{step === 'bindStudent'}}">
+    <view class="bind-section">
+      <view class="bind-header">
+        <text class="bind-title">绑定学号</text>
+        <text class="bind-desc">绑定学号后可参与班级、年级排行榜</text>
+      </view>
+
+      <view class="bind-form">
+        <view class="form-item">
+          <text class="form-label">学号</text>
+          <input 
+            class="form-input" 
+            type="text" 
+            placeholder="请输入学号"
+            bindinput="onStudentIdInput"
+          />
+        </view>
+        <view class="form-item">
+          <text class="form-label">姓名</text>
+          <input 
+            class="form-input" 
+            type="text" 
+            placeholder="请输入真实姓名"
+            bindinput="onNameInput"
+          />
+        </view>
+      </view>
+
+      <view class="bind-actions">
+        <button class="bind-btn primary" bindtap="onBindStudent">
+          确认绑定
+        </button>
+        <button class="bind-btn secondary" bindtap="onSkipBind">
+          暂时跳过
+        </button>
+      </view>
+    </view>
+  </block>
+</view>

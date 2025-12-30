@@ -1,0 +1,52 @@
+<!--pages/achievement/achievement.wxml-->
+<view class="container">
+  <!-- 统计头部 -->
+  <view class="stats-header">
+    <view class="stats-bg"></view>
+    <view class="stats-content">
+      <view class="stats-main">
+        <text class="stats-value">{{unlockedCount}}</text>
+        <text class="stats-label">已获得成就</text>
+      </view>
+      <view class="stats-progress">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{progressPercent}}%"></view>
+        </view>
+        <text class="progress-text">{{unlockedCount}}/{{totalCount}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 成就列表 -->
+  <view class="achievement-list">
+    <view 
+      class="achievement-item {{item.isUnlocked ? 'unlocked' : 'locked'}}"
+      wx:for="{{achievements}}"
+      wx:key="id"
+      data-item="{{item}}"
+      bindtap="onAchievementTap"
+    >
+      <view class="achievement-icon {{item.isUnlocked ? 'icon-unlocked' : 'icon-locked'}}">
+        <text class="icon-emoji">{{item.icon}}</text>
+      </view>
+      <view class="achievement-info">
+        <text class="achievement-name">{{item.name}}</text>
+        <text class="achievement-desc">{{item.isUnlocked ? item.description : '需要' + item.km + 'km解锁'}}</text>
+      </view>
+      <view class="achievement-status">
+        <text wx:if="{{item.isUnlocked}}" class="status-unlocked">✓</text>
+        <text wx:else class="status-locked">🔒</text>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && achievements.length === 0}}">
+      <text>暂无成就数据</text>
+    </view>
+  </view>
+
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <text>加载中...</text>
+  </view>
+</view>

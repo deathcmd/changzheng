@@ -1,0 +1,81 @@
+<!--pages/node/node.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <block wx:else>
+    <!-- 节点封面 -->
+    <view class="node-header">
+      <view class="node-overlay"></view>
+      <view class="node-info">
+        <text class="node-name">{{nodeInfo.nodeName}}</text>
+        <text class="node-km">里程：{{nodeInfo.mileageThreshold || nodeInfo.km || 0}} km</text>
+      </view>
+    </view>
+
+    <!-- 节点描述 -->
+    <view class="node-desc card">
+      <view class="section-title">历史背景</view>
+      <text class="desc-text">{{nodeInfo.description || '暂无描述'}}</text>
+    </view>
+
+    <!-- 学习进度 -->
+    <view class="progress-section card" wx:if="{{contents.length > 0}}">
+      <view class="progress-header">
+        <text class="section-title">学习内容</text>
+        <text class="progress-text">{{learnedCount}}/{{totalCount}}</text>
+      </view>
+      <view class="progress-bar">
+        <view class="progress-fill" style="width: {{progressPercent}}%"></view>
+      </view>
+    </view>
+
+    <!-- 内容列表 -->
+    <view class="content-list" wx:if="{{contents.length > 0}}">
+      <view 
+        class="content-item {{item.isLearned ? 'learned' : ''}}"
+        wx:for="{{contents}}"
+        wx:key="id"
+        data-item="{{item}}"
+        bindtap="onContentTap"
+      >
+        <view class="content-left">
+          <view class="content-type-icon">
+            <text wx:if="{{item.contentType === 'video'}}">🎥</text>
+            <text wx:elif="{{item.contentType === 'audio'}}">🎙️</text>
+            <text wx:elif="{{item.contentType === 'quiz'}}">❓</text>
+            <text wx:else>📖</text>
+          </view>
+          <view class="content-info">
+            <text class="content-title">{{item.title}}</text>
+            <view class="content-meta">
+              <text class="meta-type">{{item.contentType === 'video' ? '视频' : item.contentType === 'audio' ? '音频' : item.contentType === 'quiz' ? '答题' : '图文'}}</text>
+              <text class="meta-duration" wx:if="{{item.duration}}">{{item.duration}}</text>
+            </view>
+          </view>
+        </view>
+        <view class="content-right">
+          <text class="learned-badge" wx:if="{{item.isLearned}}">✓</text>
+          <text wx:else class="arrow-icon">›</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-content card" wx:if="{{contents.length === 0}}">
+      <text class="empty-icon">📚</text>
+      <text class="empty-text">暂无学习内容</text>
+      <text class="empty-hint">敬请期待</text>
+    </view>
+
+    <!-- 分享按钮 -->
+    <view class="share-section">
+      <button class="share-btn" open-type="share">
+        <text>🚀 分享我的长征足迹</text>
+      </button>
+    </view>
+  </block>
+</view>

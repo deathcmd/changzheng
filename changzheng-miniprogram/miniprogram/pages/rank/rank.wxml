@@ -1,0 +1,221 @@
+<!--pages/rank/rank.wxml-->
+<view class="container">
+  <!-- Tab切换 -->
+  <view class="tab-bar">
+    <view class="tab-item {{activeTab === 'total' ? 'active' : ''}}" data-tab="total" bindtap="switchTab">
+      <text>总榜</text>
+    </view>
+    <view class="tab-item {{activeTab === 'grade' ? 'active' : ''}}" data-tab="grade" bindtap="switchTab">
+      <text>年级榜</text>
+    </view>
+  </view>
+
+  <!-- 年级标题 -->
+  <view class="grade-header" wx:if="{{activeTab === 'grade' && userGrade}}">
+    <text>{{userGrade}} 排行榜</text>
+  </view>
+
+  <!-- 排行榜列表 -->
+  <scroll-view 
+    class="rank-list" 
+    scroll-y
+    refresher-enabled
+    bindrefresherrefresh="onPullDownRefresh"
+  >
+    <!-- 总榜内容 -->
+    <block wx:if="{{activeTab === 'total'}}">
+      <!-- 数据少于3条时显示普通列表 -->
+      <view class="rank-items" wx:if="{{rankList.length > 0 && rankList.length < 3}}">
+        <view 
+          class="rank-item"
+          wx:for="{{rankList}}"
+          wx:key="userId"
+          data-item="{{item}}"
+          bindtap="onUserTap"
+        >
+          <view class="item-rank top-rank-{{index + 1}}">{{index + 1}}</view>
+          <image class="item-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="item-info">
+            <text class="item-name">{{item.realName}}</text>
+            <text class="item-extra">{{item.grade || ''}} {{item.className || ''}}</text>
+          </view>
+          <view class="item-value">
+            <text class="value-num">{{item.totalMileage}}</text>
+            <text class="value-unit">km</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 前三名 -->
+      <view class="top-three" wx:if="{{rankList.length >= 3}}">
+        <!-- 第二名 -->
+        <view class="top-item second" data-item="{{rankList[1]}}" bindtap="onUserTap">
+          <view class="top-rank">2</view>
+          <image class="top-avatar" src="{{rankList[1].avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <text class="top-name ellipsis">{{rankList[1].realName}}</text>
+          <text class="top-major ellipsis">{{rankList[1].className || ''}}</text>
+          <view class="top-value">{{rankList[1].totalMileage}}<text>km</text></view>
+        </view>
+        
+        <!-- 第一名 -->
+        <view class="top-item first" data-item="{{rankList[0]}}" bindtap="onUserTap">
+          <view class="crown">👑</view>
+          <view class="top-rank">1</view>
+          <image class="top-avatar" src="{{rankList[0].avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <text class="top-name ellipsis">{{rankList[0].realName}}</text>
+          <text class="top-major ellipsis">{{rankList[0].className || ''}}</text>
+          <view class="top-value">{{rankList[0].totalMileage}}<text>km</text></view>
+        </view>
+        
+        <!-- 第三名 -->
+        <view class="top-item third" data-item="{{rankList[2]}}" bindtap="onUserTap">
+          <view class="top-rank">3</view>
+          <image class="top-avatar" src="{{rankList[2].avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <text class="top-name ellipsis">{{rankList[2].realName}}</text>
+          <text class="top-major ellipsis">{{rankList[2].className || ''}}</text>
+          <view class="top-value">{{rankList[2].totalMileage}}<text>km</text></view>
+        </view>
+      </view>
+
+      <!-- 其他排名 -->
+      <view class="rank-items">
+        <view 
+          class="rank-item"
+          wx:for="{{rankList}}"
+          wx:key="userId"
+          wx:if="{{index >= 3}}"
+          data-item="{{item}}"
+          bindtap="onUserTap"
+        >
+          <view class="item-rank">{{index + 1}}</view>
+          <image class="item-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="item-info">
+            <text class="item-name">{{item.realName}}</text>
+            <text class="item-extra">{{item.grade || ''}} {{item.className || ''}}</text>
+          </view>
+          <view class="item-value">
+            <text class="value-num">{{item.totalMileage}}</text>
+            <text class="value-unit">km</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 年级榜内容（显示同年级用户排名） -->
+    <block wx:if="{{activeTab === 'grade'}}">
+      <!-- 数据少于3条时显示普通列表 -->
+      <view class="rank-items" wx:if="{{rankList.length > 0 && rankList.length < 3}}">
+        <view 
+          class="rank-item"
+          wx:for="{{rankList}}"
+          wx:key="userId"
+          data-item="{{item}}"
+          bindtap="onUserTap"
+        >
+          <view class="item-rank top-rank-{{index + 1}}">{{index + 1}}</view>
+          <image class="item-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="item-info">
+            <text class="item-name">{{item.realName}}</text>
+            <text class="item-extra">{{item.className || ''}}</text>
+          </view>
+          <view class="item-value">
+            <text class="value-num">{{item.totalMileage}}</text>
+            <text class="value-unit">km</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 前三名 -->
+      <view class="top-three" wx:if="{{rankList.length >= 3}}">
+        <!-- 第二名 -->
+        <view class="top-item second" data-item="{{rankList[1]}}" bindtap="onUserTap">
+          <view class="top-rank">2</view>
+          <image class="top-avatar" src="{{rankList[1].avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <text class="top-name ellipsis">{{rankList[1].realName}}</text>
+          <text class="top-major ellipsis">{{rankList[1].className || ''}}</text>
+          <view class="top-value">{{rankList[1].totalMileage}}<text>km</text></view>
+        </view>
+        
+        <!-- 第一名 -->
+        <view class="top-item first" data-item="{{rankList[0]}}" bindtap="onUserTap">
+          <view class="crown">👑</view>
+          <view class="top-rank">1</view>
+          <image class="top-avatar" src="{{rankList[0].avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <text class="top-name ellipsis">{{rankList[0].realName}}</text>
+          <text class="top-major ellipsis">{{rankList[0].className || ''}}</text>
+          <view class="top-value">{{rankList[0].totalMileage}}<text>km</text></view>
+        </view>
+        
+        <!-- 第三名 -->
+        <view class="top-item third" data-item="{{rankList[2]}}" bindtap="onUserTap">
+          <view class="top-rank">3</view>
+          <image class="top-avatar" src="{{rankList[2].avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <text class="top-name ellipsis">{{rankList[2].realName}}</text>
+          <text class="top-major ellipsis">{{rankList[2].className || ''}}</text>
+          <view class="top-value">{{rankList[2].totalMileage}}<text>km</text></view>
+        </view>
+      </view>
+
+      <!-- 其他排名 -->
+      <view class="rank-items">
+        <view 
+          class="rank-item"
+          wx:for="{{rankList}}"
+          wx:key="userId"
+          wx:if="{{index >= 3}}"
+          data-item="{{item}}"
+          bindtap="onUserTap"
+        >
+          <view class="item-rank">{{index + 1}}</view>
+          <image class="item-avatar" src="{{item.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+          <view class="item-info">
+            <text class="item-name">{{item.realName}}</text>
+            <text class="item-extra">{{item.className || ''}}</text>
+          </view>
+          <view class="item-value">
+            <text class="value-num">{{item.totalMileage}}</text>
+            <text class="value-unit">km</text>
+          </view>
+        </view>
+      </view>
+    </block>
+
+    <!-- 加载更多 -->
+    <view class="loading-more" wx:if="{{loading && page > 1}}">
+      <text>加载中...</text>
+    </view>
+    
+    <!-- 没有更多 -->
+    <view class="no-more" wx:if="{{!hasMore && rankList.length > 0}}">
+      <text>没有更多了</text>
+    </view>
+
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{!loading && rankList.length === 0}}">
+      <text>暂无排行数据</text>
+    </view>
+  </scroll-view>
+
+  <!-- 我的排名 -->
+  <view class="my-rank" wx:if="{{myRank && isLogin}}">
+    <view class="my-rank-inner">
+      <view class="my-rank-left">
+        <view class="my-rank-num">{{myRank.rank || '-'}}<text>名</text></view>
+        <image class="my-avatar" src="{{myRank.avatarUrl || '/images/default-avatar.png'}}" mode="aspectFill"></image>
+        <view class="my-info">
+          <text class="my-name">{{myRank.realName || '我'}}</text>
+          <text class="my-extra">{{myRank.className || ''}}</text>
+        </view>
+      </view>
+      <view class="my-rank-right">
+        <text class="my-value">{{myRank.totalMileage || 0}}</text>
+        <text class="my-unit">km</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 未登录提示 -->
+  <view class="login-tip" wx:if="{{!isLogin}}" bindtap="goLogin">
+    <text>登录查看您的排名</text>
+  </view>
+</view>

@@ -1,0 +1,167 @@
+/* 全局样式 */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+#app {
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+/* Element Plus 覆盖 */
+.el-card {
+  border-radius: 8px;
+}
+
+.el-table {
+  --el-table-border-color: #ebeef5;
+}
+
+/* 通用布局 */
+.page-container {
+  padding: 20px;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 表格操作列 */
+.table-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* 分页容器 */
+.pagination-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+}
+
+/* ==================== 响应式适配 ==================== */
+
+/* 平板端 (768px - 1024px) */
+@media screen and (max-width: 1024px) {
+  .page-container {
+    padding: 15px;
+  }
+
+  .el-col-6 {
+    flex: 0 0 50% !important;
+    max-width: 50% !important;
+  }
+}
+
+/* 手机端 (< 768px) */
+@media screen and (max-width: 768px) {
+  .page-container {
+    padding: 10px;
+  }
+
+  /* 统计卡片一列显示 */
+  .el-row {
+    flex-wrap: wrap;
+  }
+
+  .el-col-6,
+  .el-col-12 {
+    flex: 0 0 100% !important;
+    max-width: 100% !important;
+    margin-bottom: 10px;
+  }
+
+  /* 表格滚动 */
+  .el-table {
+    font-size: 12px;
+  }
+
+  .el-table .el-table__header th {
+    padding: 8px 0;
+  }
+
+  .el-table .el-table__body td {
+    padding: 8px 0;
+  }
+
+  /* 卡片间距 */
+  .el-card {
+    margin-bottom: 10px;
+
+    .el-card__body {
+      padding: 12px;
+    }
+  }
+
+  /* 分页简化 */
+  .el-pagination {
+    justify-content: center;
+
+    .el-pagination__sizes,
+    .el-pagination__jump {
+      display: none !important;
+    }
+  }
+
+  /* 按钮组 */
+  .filter-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+
+    .filter-left,
+    .filter-right {
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+
+    .el-input,
+    .el-select {
+      width: 100% !important;
+      margin-bottom: 8px;
+    }
+
+    .el-button {
+      flex: 1;
+    }
+  }
+
+  /* 隐藏部分表格列 */
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+/* 超小屏幕 (< 480px) */
+@media screen and (max-width: 480px) {
+  .page-container {
+    padding: 8px;
+  }
+
+  .el-card__header {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+
+  .stat-value {
+    font-size: 24px !important;
+  }
+
+  .stat-label {
+    font-size: 12px !important;
+  }
+}

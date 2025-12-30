@@ -1,0 +1,279 @@
+/* pages/node/node.wxss */
+
+.container {
+  min-height: 100vh;
+  background: #F5F5F5;
+  padding-bottom: 40rpx;
+}
+
+/* 加载状态 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 200rpx 0;
+}
+
+.loading-icon {
+  width: 60rpx;
+  height: 60rpx;
+  border: 4rpx solid #E8E8E8;
+  border-top-color: #C41E3A;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 24rpx;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-state text {
+  font-size: 28rpx;
+  color: #999999;
+}
+
+/* 节点封面 */
+.node-header {
+  position: relative;
+  height: 300rpx;
+  background: linear-gradient(135deg, #C41E3A, #E8505B);
+}
+
+.node-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 150rpx;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.3));
+}
+
+.node-info {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 32rpx;
+  color: #FFFFFF;
+}
+
+.node-name {
+  font-size: 40rpx;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 12rpx;
+}
+
+.node-km {
+  font-size: 26rpx;
+  opacity: 0.9;
+}
+
+/* 卡片通用样式 */
+.card {
+  margin: 24rpx;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 32rpx;
+}
+
+.section-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333333;
+  margin-bottom: 16rpx;
+}
+
+/* 节点描述 */
+.desc-text {
+  font-size: 28rpx;
+  color: #666666;
+  line-height: 1.8;
+}
+
+/* 学习进度 */
+.progress-section {
+  padding: 24rpx 32rpx;
+}
+
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16rpx;
+}
+
+.progress-text {
+  font-size: 26rpx;
+  color: #C41E3A;
+  font-weight: bold;
+}
+
+.progress-bar {
+  height: 12rpx;
+  background: #F0F0F0;
+  border-radius: 6rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #C41E3A, #E8505B);
+  border-radius: 6rpx;
+  transition: width 0.3s ease;
+}
+
+/* 内容列表 */
+.content-list {
+  margin: 0 24rpx;
+}
+
+.content-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #FFFFFF;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  margin-bottom: 16rpx;
+}
+
+.content-item.learned {
+  background: #FAFAFA;
+}
+
+.content-left {
+  display: flex;
+  align-items: center;
+  flex: 1;
+}
+
+.content-type-icon {
+  width: 80rpx;
+  height: 80rpx;
+  border-radius: 16rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 20rpx;
+  background: #FFF5F5;
+  font-size: 36rpx;
+}
+
+.content-type.video {
+  background: #FFF0F0;
+}
+
+.content-type.audio {
+  background: #F0F8FF;
+}
+
+.content-type.quiz {
+  background: #F0FFF0;
+}
+
+.content-type.article {
+  background: #FFF8F0;
+}
+
+.content-type image {
+  width: 40rpx;
+  height: 40rpx;
+}
+
+.content-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.content-title {
+  font-size: 28rpx;
+  color: #333333;
+  margin-bottom: 8rpx;
+}
+
+.content-item.learned .content-title {
+  color: #999999;
+}
+
+.content-meta {
+  display: flex;
+  align-items: center;
+}
+
+.meta-type {
+  font-size: 22rpx;
+  color: #999999;
+  background: #F5F5F5;
+  padding: 4rpx 12rpx;
+  border-radius: 8rpx;
+}
+
+.meta-duration {
+  font-size: 22rpx;
+  color: #999999;
+  margin-left: 16rpx;
+}
+
+.content-right {
+  margin-left: 20rpx;
+}
+
+.learned-badge {
+  font-size: 36rpx;
+  color: #52C41A;
+}
+
+.arrow-icon {
+  font-size: 40rpx;
+  color: #CCCCCC;
+}
+
+/* 空状态 */
+.empty-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60rpx 0;
+}
+
+.empty-icon {
+  font-size: 80rpx;
+  margin-bottom: 20rpx;
+}
+
+.empty-text {
+  font-size: 30rpx;
+  color: #666;
+  margin-bottom: 10rpx;
+}
+
+.empty-hint {
+  font-size: 24rpx;
+  color: #999;
+}
+
+/* 分享按钮 */
+.share-section {
+  padding: 32rpx 24rpx;
+}
+
+.share-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #C41E3A, #E8505B);
+  color: #FFFFFF;
+  border-radius: 44rpx;
+  height: 88rpx;
+  font-size: 30rpx;
+}
+
+.share-btn image {
+  width: 36rpx;
+  height: 36rpx;
+  margin-right: 12rpx;
+}

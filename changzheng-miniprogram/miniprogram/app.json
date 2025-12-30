@@ -1,0 +1,68 @@
+{
+  "pages": [
+    "pages/index/index",
+    "pages/map/map",
+    "pages/rank/rank",
+    "pages/mine/mine",
+    "pages/node/node",
+    "pages/content/content",
+    "pages/achievement/achievement",
+    "pages/authorize/authorize",
+    "pages/history/history",
+    "pages/bind/bind",
+    "pages/profile/profile"
+  ],
+  "window": {
+    "navigationBarBackgroundColor": "#C41E3A",
+    "navigationBarTitleText": "云上重走长征路",
+    "navigationBarTextStyle": "white",
+    "backgroundColor": "#F8F8F8",
+    "backgroundTextStyle": "dark"
+  },
+  "tabBar": {
+    "color": "#999999",
+    "selectedColor": "#C41E3A",
+    "backgroundColor": "#FFFFFF",
+    "borderStyle": "black",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "首页",
+        "iconPath": "images/tabbar/home.png",
+        "selectedIconPath": "images/tabbar/home-active.png"
+      },
+      {
+        "pagePath": "pages/map/map",
+        "text": "长征路",
+        "iconPath": "images/tabbar/map.png",
+        "selectedIconPath": "images/tabbar/map-active.png"
+      },
+      {
+        "pagePath": "pages/rank/rank",
+        "text": "排行榜",
+        "iconPath": "images/tabbar/rank.png",
+        "selectedIconPath": "images/tabbar/rank-active.png"
+      },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "images/tabbar/mine.png",
+        "selectedIconPath": "images/tabbar/mine-active.png"
+      }
+    ]
+  },
+  "permission": {
+    "scope.werun": {
+      "desc": "获取您的微信运动步数用于计算长征里程"
+    },
+    "scope.userInfo": {
+      "desc": "获取您的基本信息用于排行榜展示"
+    }
+  },
+  "requiredPrivateInfos": [
+    "getLocation"
+  ],
+  "sitemapLocation": "sitemap.json",
+  "style": "v2",
+  "lazyCodeLoading": "requiredComponents"
+}

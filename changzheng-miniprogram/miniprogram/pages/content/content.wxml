@@ -1,0 +1,92 @@
+<!--pages/content/content.wxml-->
+<view class="container">
+  <!-- 加载中 -->
+  <view class="loading-state" wx:if="{{loading}}">
+    <view class="loading-icon"></view>
+    <text>加载中...</text>
+  </view>
+
+  <block wx:else>
+    <!-- 视频内容 -->
+    <view class="video-section" wx:if="{{contentInfo.contentType === 'video'}}">
+      <video 
+        class="content-video"
+        src="{{contentInfo.videoUrl}}"
+        poster="{{contentInfo.coverUrl}}"
+        controls
+        show-center-play-btn
+        enable-progress-gesture
+        bindplay="onVideoPlay"
+        bindpause="onVideoPause"
+        bindended="onVideoEnded"
+        bindtimeupdate="onVideoTimeUpdate"
+      ></video>
+    </view>
+
+    <!-- 音频内容 -->
+    <view class="audio-section" wx:if="{{contentInfo.contentType === 'audio'}}">
+      <view class="audio-cover">
+        <image src="{{contentInfo.coverUrl || '/images/audio-cover.png'}}" mode="aspectFill"></image>
+      </view>
+      <view class="audio-info">
+        <text class="audio-title">{{contentInfo.title}}</text>
+      </view>
+      <view class="audio-player">
+        <!-- 这里可以使用小程序的audio组件或自定义播放器 -->
+      </view>
+    </view>
+
+    <!-- 图文内容 -->
+    <view class="article-section">
+      <view class="article-header">
+        <text class="article-title">{{contentInfo.title}}</text>
+        <view class="article-meta">
+          <text class="meta-time">{{contentInfo.createTime}}</text>
+          <view class="learned-tag" wx:if="{{isLearned}}">
+            <image src="/images/icon-check-green.png" mode="aspectFit"></image>
+            <text>已学习</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 富文本内容 -->
+      <view class="article-content">
+        <rich-text nodes="{{contentInfo.content}}"></rich-text>
+      </view>
+
+      <!-- 图片列表 -->
+      <view class="image-list" wx:if="{{contentInfo.images && contentInfo.images.length > 0}}">
+        <image 
+          wx:for="{{contentInfo.images}}"
+          wx:key="*this"
+          src="{{item}}"
+          mode="widthFix"
+          bindtap="onImageTap"
+          data-src="{{item}}"
+          data-list="{{contentInfo.images}}"
+        ></image>
+      </view>
+    </view>
+
+    <!-- 答题内容 -->
+    <view class="quiz-section" wx:if="{{contentInfo.contentType === 'quiz'}}">
+      <!-- 答题功能可以单独实现 -->
+      <view class="quiz-tip">
+        <text>答题功能开发中...</text>
+      </view>
+    </view>
+
+    <!-- 完成学习按钮 -->
+    <view class="action-section" wx:if="{{!isLearned}}">
+      <button class="complete-btn" bindtap="onCompleteTap">
+        完成学习
+      </button>
+    </view>
+
+    <!-- 已完成提示 -->
+    <view class="completed-tip" wx:if="{{isLearned}}">
+      <image src="/images/icon-check-circle.png" mode="aspectFit"></image>
+      <text>已完成学习</text>
+    </view>
+  </block>
+</view>

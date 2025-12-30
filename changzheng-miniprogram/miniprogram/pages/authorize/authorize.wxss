@@ -1,0 +1,315 @@
+/* pages/authorize/authorize.wxss */
+
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF5F5 0%, #FFFFFF 50%);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Logo区域 */
+.logo-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 120rpx 0 60rpx;
+}
+
+.logo-icon {
+  font-size: 120rpx;
+  margin-bottom: 24rpx;
+}
+
+.logo {
+  width: 180rpx;
+  height: 180rpx;
+  margin-bottom: 24rpx;
+}
+
+.app-name {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #C41E3A;
+  margin-bottom: 12rpx;
+}
+
+.app-slogan {
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.school-info {
+  font-size: 24rpx;
+  color: #C41E3A;
+  margin-top: 24rpx;
+  font-weight: bold;
+}
+
+.college-info {
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 8rpx;
+}
+
+/* 功能说明 */
+.features {
+  padding: 40rpx 60rpx;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+}
+
+.feature-icon {
+  font-size: 40rpx;
+  margin-right: 20rpx;
+}
+
+.feature-item image {
+  width: 48rpx;
+  height: 48rpx;
+  margin-right: 20rpx;
+}
+
+.feature-item text {
+  font-size: 28rpx;
+  color: #333333;
+}
+
+/* 登录区域 */
+.login-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 40rpx;
+  padding-bottom: calc(80rpx + constant(safe-area-inset-bottom));
+  padding-bottom: calc(80rpx + env(safe-area-inset-bottom));
+}
+
+.login-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #07C160, #06AD56);
+  color: #FFFFFF;
+  border-radius: 50rpx;
+  height: 100rpx;
+  font-size: 34rpx;
+  margin-bottom: 32rpx;
+}
+
+.login-btn .btn-icon {
+  font-size: 36rpx;
+  margin-right: 12rpx;
+}
+
+.login-btn image {
+  width: 44rpx;
+  height: 44rpx;
+  margin-right: 16rpx;
+}
+
+.login-btn.disabled {
+  background: #CCCCCC;
+}
+
+.login-btn.loading {
+  opacity: 0.7;
+}
+
+/* 协议 */
+.agreement {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  font-size: 24rpx;
+  color: #999999;
+}
+
+.agreement-label {
+  display: flex;
+  align-items: center;
+}
+
+.agreement checkbox {
+  transform: scale(0.8);
+}
+
+.agreement .link {
+  color: #C41E3A;
+}
+
+/* 绑定学号 */
+.bind-section {
+  padding: 60rpx 40rpx;
+}
+
+.bind-header {
+  text-align: center;
+  margin-bottom: 60rpx;
+}
+
+.bind-title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333333;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.bind-desc {
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.bind-form {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 16rpx 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.form-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx 0;
+  border-bottom: 1rpx solid #F0F0F0;
+}
+
+.form-item:last-child {
+  border-bottom: none;
+}
+
+.form-label {
+  width: 120rpx;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.form-input {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333333;
+}
+
+.bind-actions {
+  margin-top: 60rpx;
+}
+
+.bind-btn {
+  border-radius: 50rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  font-size: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+.bind-btn.primary {
+  background: linear-gradient(135deg, #C41E3A, #E8505B);
+  color: #FFFFFF;
+}
+
+.bind-btn.secondary {
+  background: #F5F5F5;
+  color: #666666;
+}
+
+/* 设置头像昵称 */
+.profile-section {
+  padding: 60rpx 40rpx;
+}
+
+.profile-header {
+  text-align: center;
+  margin-bottom: 60rpx;
+}
+
+.profile-title {
+  font-size: 44rpx;
+  font-weight: bold;
+  color: #333333;
+  display: block;
+  margin-bottom: 16rpx;
+}
+
+.profile-desc {
+  font-size: 28rpx;
+  color: #666666;
+}
+
+.profile-form {
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 32rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0, 0, 0, 0.05);
+}
+
+.avatar-section {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 40rpx;
+}
+
+.avatar-btn {
+  width: 180rpx;
+  height: 180rpx;
+  border-radius: 50%;
+  padding: 0;
+  background: #F5F5F5;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-btn::after {
+  border: none;
+}
+
+.avatar-img {
+  width: 100%;
+  height: 100%;
+}
+
+.avatar-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-placeholder text:first-child {
+  font-size: 60rpx;
+}
+
+.avatar-tip {
+  font-size: 22rpx;
+  color: #999999;
+  margin-top: 8rpx;
+}
+
+.profile-actions {
+  margin-top: 60rpx;
+}
+
+.profile-btn {
+  border-radius: 50rpx;
+  height: 100rpx;
+  line-height: 100rpx;
+  font-size: 32rpx;
+  margin-bottom: 24rpx;
+}
+
+.profile-btn.primary {
+  background: linear-gradient(135deg, #C41E3A, #E8505B);
+  color: #FFFFFF;
+}
+
+.profile-btn.secondary {
+  background: #F5F5F5;
+  color: #666666;
+}

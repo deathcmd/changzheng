@@ -1,0 +1,96 @@
+server:
+  port: 8080
+
+spring:
+  config:
+    import: optional:nacos:
+  application:
+    name: gateway
+  cloud:
+    nacos:
+      config:
+        import-check:
+          enabled: false
+      discovery:
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+      config:
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yaml
+    gateway:
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+      routes:
+        # 认证服务
+        - id: auth-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - StripPrefix=1
+        # 运动服务
+        - id: sport-service
+          uri: lb://sport-service
+          predicates:
+            - Path=/api/sport/**
+          filters:
+            - StripPrefix=1
+        # 内容服务
+        - id: content-service
+          uri: lb://content-service
+          predicates:
+            - Path=/api/content/**
+          filters:
+            - StripPrefix=1
+        # 排行服务
+        - id: rank-service
+          uri: lb://rank-service
+          predicates:
+            - Path=/api/rank/**
+          filters:
+            - StripPrefix=1
+        # 管理服务
+        - id: admin-service
+          uri: lb://changzheng-admin
+          predicates:
+            - Path=/api/admin/**
+          filters:
+            - StripPrefix=1
+      # 跨域配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOriginPatterns: "*"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders: "*"
+            allowCredentials: true
+            maxAge: 3600
+
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
+      database: 0
+      lettuce:
+        pool:
+          max-active: 50
+          max-idle: 20
+          min-idle: 10
+          max-wait: 5000ms
+
+jwt:
+  secret: ${JWT_SECRET:changzheng-cloud-march-secret-key-2024-very-long}
+
+logging:
+  level:
+    com.changzheng: debug
+    org.springframework.cloud.gateway: debug

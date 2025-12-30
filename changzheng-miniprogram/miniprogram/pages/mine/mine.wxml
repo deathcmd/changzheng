@@ -1,0 +1,123 @@
+<!--pages/mine/mine.wxml-->
+<view class="container">
+  <!-- 用户信息卡片 -->
+  <view class="user-card">
+    <view class="user-bg"></view>
+    <view class="user-content" bindtap="onAvatarTap">
+      <!-- 已登录 -->
+      <block wx:if="{{isLogin}}">
+        <view class="avatar-wrapper">
+          <image wx:if="{{userInfo.avatarUrl}}" class="avatar-img" src="{{userInfo.avatarUrl}}" mode="aspectFill"/>
+          <text wx:else class="avatar-text">{{userInfo.nickName ? userInfo.nickName[0] : '战'}}</text>
+        </view>
+        <view class="user-info">
+          <text class="user-name">{{userInfo.name || userInfo.nickName || '长征战士'}}</text>
+          <view class="user-detail" wx:if="{{userInfo.studentNo}}">
+            <text class="user-id">学号：{{userInfo.studentNo}}</text>
+            <text class="user-class">{{userInfo.grade}} · {{userInfo.major}}</text>
+            <text class="user-class">{{userInfo.className}}</text>
+          </view>
+          <text class="user-tip" wx:else>点击认证学生身份</text>
+        </view>
+        <text class="arrow-icon">›</text>
+      </block>
+      
+      <!-- 未登录 -->
+      <block wx:else>
+        <view class="avatar-wrapper guest">
+          <text class="avatar-text">👤</text>
+        </view>
+        <view class="user-info">
+          <text class="login-text">点击登录</text>
+          <text class="login-tip">登录后开启您的长征之旅</text>
+        </view>
+        <text class="arrow-icon">›</text>
+      </block>
+    </view>
+  </view>
+
+  <!-- 数据统计 -->
+  <view class="stats-card" wx:if="{{isLogin}}">
+    <view class="stats-item" bindtap="goToHistory">
+      <text class="stats-value">{{totalMileage}}</text>
+      <text class="stats-label">总里程(km)</text>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item" bindtap="goToHistory">
+      <text class="stats-value">{{totalSteps}}</text>
+      <text class="stats-label">总步数</text>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item" bindtap="goToHistory">
+      <text class="stats-value">{{totalDays}}</text>
+      <text class="stats-label">运动天数</text>
+    </view>
+    <view class="stats-divider"></view>
+    <view class="stats-item" bindtap="goToAchievement">
+      <text class="stats-value">{{achievementCount}}</text>
+      <text class="stats-label">获得成就</text>
+    </view>
+  </view>
+
+  <!-- 功能菜单 -->
+  <view class="menu-card">
+    <view class="menu-item" bindtap="goToHistory">
+      <text class="menu-icon">📅</text>
+      <text class="menu-title">运动记录</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToAchievement">
+      <text class="menu-icon">🏆</text>
+      <text class="menu-title">我的成就</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToNodes">
+      <text class="menu-icon">📍</text>
+      <text class="menu-title">解锁节点</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToBind">
+      <text class="menu-icon">🎓</text>
+      <text class="menu-title">学生认证</text>
+      <view class="menu-status success" wx:if="{{userInfo.studentNo}}">已认证</view>
+      <view class="menu-status warning" wx:else>未认证</view>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToSetting">
+      <text class="menu-icon">⚙️</text>
+      <text class="menu-title">设置</text>
+      <text class="menu-arrow">›</text>
+    </view>
+    <view class="menu-item" bindtap="goToAbout">
+      <text class="menu-icon">🚩</text>
+      <text class="menu-title">关于长征</text>
+      <text class="menu-arrow">›</text>
+    </view>
+  </view>
+
+  <!-- 其他操作 -->
+  <view class="menu-card">
+    <button class="menu-item contact-btn" open-type="contact">
+      <text class="menu-icon">📞</text>
+      <text class="menu-title">联系客服</text>
+      <text class="menu-arrow">›</text>
+    </button>
+    <button class="menu-item share-btn" open-type="share">
+      <text class="menu-icon">📤</text>
+      <text class="menu-title">分享应用</text>
+      <text class="menu-arrow">›</text>
+    </button>
+  </view>
+
+  <!-- 退出登录 -->
+  <view class="logout-card" wx:if="{{isLogin}}">
+    <view class="logout-btn" bindtap="onLogout">
+      <text>退出登录</text>
+    </view>
+  </view>
+
+  <!-- 版本信息 -->
+  <view class="version-info">
+    <text>云上重走长征路 v1.0.0</text>
+  </view>
+</view>

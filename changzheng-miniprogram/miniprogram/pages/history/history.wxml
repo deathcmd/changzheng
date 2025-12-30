@@ -1,0 +1,85 @@
+<!--pages/history/history.wxml-->
+<view class="container">
+  <!-- 未登录提示 -->
+  <view class="login-tip" wx:if="{{!isLogin}}">
+    <text class="tip-icon">🔒</text>
+    <text class="tip-text">登录后查看运动记录</text>
+    <button class="login-btn" bindtap="goLogin">立即登录</button>
+  </view>
+
+  <block wx:else>
+    <!-- 统计概览 -->
+    <view class="stats-card">
+      <view class="stats-header">
+        <text class="stats-title">{{currentMonth}} 运动统计</text>
+      </view>
+      <view class="stats-grid">
+        <view class="stats-item">
+          <text class="stats-value">{{totalSteps}}</text>
+          <text class="stats-label">总步数</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{totalMileage}}</text>
+          <text class="stats-label">总里程(km)</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{totalDays}}</text>
+          <text class="stats-label">运动天数</text>
+        </view>
+        <view class="stats-item">
+          <text class="stats-value">{{avgSteps}}</text>
+          <text class="stats-label">日均步数</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 换算说明 -->
+    <view class="convert-tip">
+      <text class="tip-icon">💡</text>
+      <text>换算规则：{{stepToKmRate}} 步 = 1 公里</text>
+    </view>
+
+    <!-- 记录列表 -->
+    <view class="record-list">
+      <view class="list-header">
+        <text class="list-title">每日记录</text>
+      </view>
+
+      <view class="loading-tip" wx:if="{{loading}}">
+        <text>加载中...</text>
+      </view>
+
+      <block wx:else>
+        <view 
+          class="record-item" 
+          wx:for="{{records}}" 
+          wx:key="id"
+          data-record="{{item}}"
+          bindtap="onRecordTap"
+        >
+          <view class="record-date">
+            <text class="date-text">{{item.dateText}}</text>
+            <text class="week-text">{{item.weekDay}}</text>
+          </view>
+          <view class="record-data">
+            <view class="data-row">
+              <text class="data-icon">👟</text>
+              <text class="data-value">{{item.steps}}</text>
+              <text class="data-unit">步</text>
+            </view>
+            <view class="data-row">
+              <text class="data-icon">📍</text>
+              <text class="data-value">{{item.mileage}}</text>
+              <text class="data-unit">km</text>
+            </view>
+          </view>
+          <view class="record-arrow">›</view>
+        </view>
+
+        <view class="list-footer" wx:if="{{records.length >= 30}}">
+          <text>— 仅显示最近30天记录 —</text>
+        </view>
+      </block>
+    </view>
+  </block>
+</view>
