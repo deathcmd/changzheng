@@ -57,15 +57,23 @@ public class StepSyncService {
      */
     @Transactional
     public SyncResult syncSteps(Long userId, JSONArray stepInfoList) {
+        log.info("开始步数同步: userId={}, stepInfoListSize={}", userId, (stepInfoList != null ? stepInfoList.size() : "null"));
         SyncResult result = new SyncResult();
         result.setSyncCount(0);
         result.setNewUnlockedNodes(new ArrayList<>());
         result.setNewAchievements(new ArrayList<>());
 
-        User user = userMapper.selectById(userId);
-        if (user == null) {
-            throw new BusinessException(ResultCode.USER_NOT_FOUND);
-        }
+        try {
+            if (stepInfoList == null || stepInfoList.isEmpty()) {
+                log.warn("步数同步数据为空: userId={}", userId);
+                return fillTodayStats(userId, result);
+            }
+
+            User user = userMapper.selectById(userId);
+            if (user == null) {
+                log.error("用户不存在: userId={}", userId);
+                throw new BusinessException(ResultCode.USER_NOT_FOUND);
+            }
 
         BigDecimal currentMileage = user.getTotalMileage();
         int syncCount = 0;
@@ -104,6 +112,8 @@ public class StepSyncService {
 
             // 处理当日步数
             BigDecimal mileageDelta = processDailySteps(userId, recordDate, steps, currentMileage);
+            if (mileageDelta == null) mileageDelta = BigDecimal.ZERO;
+            
             currentMileage = currentMileage.add(mileageDelta);
             syncCount++;
 
@@ -121,6 +131,7 @@ public class StepSyncService {
         user.setTotalSteps(totalValidSteps != null ? totalValidSteps : 0L);
         user.setLastSyncDate(LocalDate.now());
         userMapper.updateById(user);
+        log.info("用户数据更新完成: userId={}, totalSteps={}, totalMileage={}", userId, user.getTotalSteps(), currentMileage);
 
         // 检查节点解锁
         List<SyncResult.NodeInfo> newNodes = checkAndUnlockNodes(userId, currentMileage);
@@ -136,22 +147,38 @@ public class StepSyncService {
         result.setSyncCount(syncCount);
         result.setTotalMileage(currentMileage);
         
-        // 确保始终返回今日步数（即使没有新数据同步）
+        return fillTodayStats(userId, result);
+
+        } catch (Exception e) {
+            log.error("同步步数过程发生非预期异常: userId={}", userId, e);
+            // 尝试返回今日统计，即使同步失败
+            return fillTodayStats(userId, result);
+        }
+    }
+
+    /**
+     * 填充今日统计信息（兜底逻辑）
+     */
+    private SyncResult fillTodayStats(Long userId, SyncResult result) {
         if (result.getTodaySteps() == null) {
             DailySteps todayRecord = dailyStepsMapper.selectByUserIdAndDate(userId, LocalDate.now());
             if (todayRecord != null) {
                 result.setTodaySteps(todayRecord.getValidSteps());
+                int rate = (stepToKmRate != null && stepToKmRate > 0) ? stepToKmRate : 2000;
                 result.setTodayMileage(BigDecimal.valueOf(todayRecord.getValidSteps())
-                        .divide(BigDecimal.valueOf(stepToKmRate), 2, RoundingMode.DOWN));
+                        .divide(BigDecimal.valueOf(rate), 2, RoundingMode.DOWN));
             } else {
                 result.setTodaySteps(0);
                 result.setTodayMileage(BigDecimal.ZERO);
             }
         }
-
-        log.info("用户步数同步完成: userId={}, syncCount={}, totalMileage={}", 
-                userId, syncCount, currentMileage);
-
+        
+        if (result.getTotalMileage() == null) {
+            User user = userMapper.selectById(userId);
+            if (user != null) {
+                result.setTotalMileage(user.getTotalMileage());
+            }
+        }
         return result;
     }
 
