@@ -25,4 +25,7 @@ public interface DailyStepsMapper extends BaseMapper<DailySteps> {
 
     @Select("SELECT COALESCE(SUM(valid_steps), 0) FROM t_daily_steps WHERE user_id = #{userId}")
     Long sumValidStepsByUserId(@Param("userId") Long userId);
+
+    @Select("SELECT COUNT(*) FROM t_daily_steps WHERE user_id = #{userId}")
+    Integer countDaysByUserId(@Param("userId") Long userId);
 }

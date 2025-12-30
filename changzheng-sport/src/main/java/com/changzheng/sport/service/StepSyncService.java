@@ -283,6 +283,7 @@ public class StepSyncService {
         vo.setTotalSteps(user.getTotalSteps());
         vo.setTotalDistance(BigDecimal.valueOf(25000)); // 长征总里程
         vo.setContinuousDays(user.getContinuousDays());
+        vo.setTotalDays(dailyStepsMapper.countDaysByUserId(userId));
 
         // 计算进度百分比
         BigDecimal progress = user.getTotalMileage()

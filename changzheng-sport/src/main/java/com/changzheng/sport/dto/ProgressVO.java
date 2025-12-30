@@ -15,6 +15,7 @@ public class ProgressVO {
     private Integer todaySteps;
     private BigDecimal todayMileage;
     private Integer continuousDays;
+    private Integer totalDays;
     private NodeInfo currentNode;
     private NodeInfo nextNode;
     private Integer unlockedNodeCount;
