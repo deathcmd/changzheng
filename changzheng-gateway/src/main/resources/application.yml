@@ -9,19 +9,18 @@ spring:
   cloud:
     nacos:
       config:
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        namespace: ${NACOS_NAMESPACE:}
+        file-extension: yaml
         import-check:
           enabled: false
       discovery:
         server-addr: ${NACOS_SERVER:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:}
-      config:
-        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
-        namespace: ${NACOS_NAMESPACE:}
-        file-extension: yaml
     gateway:
       discovery:
         locator:
-          enabled: true
+          enabled: false
           lower-case-service-id: true
       routes:
         # 认证服务
@@ -29,15 +28,15 @@ spring:
           uri: lb://auth-service
           predicates:
             - Path=/api/auth/**
-          filters:
-            - StripPrefix=1
+        - id: common-service
+          uri: lb://auth-service
+          predicates:
+            - Path=/api/common/**
         # 运动服务
         - id: sport-service
           uri: lb://sport-service
           predicates:
             - Path=/api/sport/**
-          filters:
-            - StripPrefix=1
         # 内容服务
         - id: content-service
           uri: lb://content-service
@@ -50,8 +49,6 @@ spring:
           uri: lb://rank-service
           predicates:
             - Path=/api/rank/**
-          filters:
-            - StripPrefix=1
         # 管理服务
         - id: admin-service
           uri: lb://changzheng-admin
@@ -63,7 +60,8 @@ spring:
       globalcors:
         cors-configurations:
           '[/**]':
-            allowedOriginPatterns: "*"
+            allowedOrigins:
+              - ${CORS_ALLOWED_ORIGIN:http://localhost:3000}
             allowedMethods:
               - GET
               - POST
@@ -88,9 +86,9 @@ spring:
           max-wait: 5000ms
 
 jwt:
-  secret: ${JWT_SECRET:changzheng-cloud-march-secret-key-2024-very-long}
+  secret: ${JWT_SECRET}
 
 logging:
   level:
-    com.changzheng: debug
-    org.springframework.cloud.gateway: debug
+    com.changzheng: info
+    org.springframework.cloud.gateway: info

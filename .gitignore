@@ -1,4 +1,15 @@
 target/
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+logs/
+uploads/
+*.log
+*.pem
+*.key
+tempfile_*
 !.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/

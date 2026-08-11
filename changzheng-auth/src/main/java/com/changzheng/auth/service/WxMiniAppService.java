@@ -36,12 +36,12 @@ public class WxMiniAppService {
         
         try {
             String response = HttpUtil.get(url, 5000);
-            log.debug("微信code2session响应: {}", response);
+            log.debug("微信code2session响应已接收");
             
             JSONObject json = JSONUtil.parseObj(response);
             
             if (json.containsKey("errcode") && json.getInt("errcode") != 0) {
-                log.error("微信code2session失败: {}", response);
+                log.warn("微信code2session失败: errcode={}", json.getInt("errcode"));
                 throw new BusinessException(ResultCode.WX_CODE_INVALID, 
                         "微信登录失败: " + json.getStr("errmsg"));
             }

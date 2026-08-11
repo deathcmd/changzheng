@@ -9,7 +9,7 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
@@ -26,9 +26,9 @@ public class AdminAuthService {
 
     private final AdminMapper adminMapper;
     
-    private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+    private final PasswordEncoder passwordEncoder;
 
-    @Value("${jwt.secret:changzheng-cloud-march-secret-key-2024-very-long}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     /**
@@ -97,7 +97,8 @@ public class AdminAuthService {
             .subject(String.valueOf(admin.getId()))
             .claim("username", admin.getUsername())
             .claim("role", admin.getRole())
-            .claim("type", "admin")
+            .claim("userType", "ADMIN")
+            .claim("tokenType", "access")
             .issuedAt(new Date())
             .expiration(new Date(System.currentTimeMillis() + 7200000)) // 2小时
             .signWith(key)

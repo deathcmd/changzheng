@@ -17,7 +17,7 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/changzheng_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:root}
+    password: ${MYSQL_PASSWORD}
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 10
@@ -55,7 +55,6 @@ mybatis-plus:
       id-type: auto
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 # RocketMQ配置
 rocketmq:
@@ -72,7 +71,10 @@ sport:
 
 # 安全配置
 security:
-  aes-key: ${AES_KEY:changzheng-aes-key-2024}
+  aes-key: ${AES_KEY}
+
+jwt:
+  secret: ${JWT_SECRET}
 
 # Knife4j配置
 springdoc:
@@ -87,4 +89,4 @@ knife4j:
 
 logging:
   level:
-    com.changzheng: debug
+    com.changzheng: info

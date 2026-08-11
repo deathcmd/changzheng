@@ -33,7 +33,7 @@ public class FileUploadController {
             return R.ok(result);
         } catch (Exception e) {
             log.error("文件上传失败", e);
-            return R.fail("文件上传失败: " + e.getMessage());
+            return R.fail("文件上传失败");
         }
     }
 
@@ -49,7 +49,7 @@ public class FileUploadController {
             return R.ok(results);
         } catch (Exception e) {
             log.error("批量上传失败", e);
-            return R.fail("批量上传失败: " + e.getMessage());
+            return R.fail("批量上传失败");
         }
     }
 
@@ -87,7 +87,7 @@ public class FileUploadController {
             return R.ok();
         } catch (Exception e) {
             log.error("文件删除失败", e);
-            return R.fail("文件删除失败: " + e.getMessage());
+            return R.fail("文件删除失败");
         }
     }
 }

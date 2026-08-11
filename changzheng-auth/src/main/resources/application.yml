@@ -1,4 +1,4 @@
-xiuserver:
+server:
   port: 8081
 
 spring:
@@ -14,12 +14,12 @@ spring:
       discovery:
         server-addr: ${NACOS_SERVER:127.0.0.1:8848}
         namespace: ${NACOS_NAMESPACE:}
-        enabled: false
+        enabled: true
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/changzheng_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:root}
+    password: ${MYSQL_PASSWORD}
     type: com.alibaba.druid.pool.DruidDataSource
     druid:
       initial-size: 10
@@ -60,19 +60,18 @@ mybatis-plus:
       logic-not-delete-value: 0
   configuration:
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
 # JWT配置
 jwt:
-  secret: ${JWT_SECRET:changzheng-cloud-march-secret-key-2024-very-long}
+  secret: ${JWT_SECRET}
   access-token-expire: 7200000   # 2小时
   refresh-token-expire: 604800000  # 7天
 
 # 微信小程序配置
 wx:
   miniapp:
-    appid: ${WX_APPID:your-appid}
-    secret: ${WX_SECRET:your-secret}
+    appid: ${WX_APPID}
+    secret: ${WX_SECRET}
 
 # 运动配置（供common接口使用）
 sport:
@@ -80,7 +79,10 @@ sport:
 
 # 安全配置
 security:
-  aes-key: ${AES_KEY:changzheng-aes-key-2024}
+  aes-key: ${AES_KEY}
+
+cors:
+  allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:3000}
 
 # Knife4j配置
 springdoc:
@@ -95,4 +97,4 @@ knife4j:
 
 logging:
   level:
-    com.changzheng: debug
+    com.changzheng: info

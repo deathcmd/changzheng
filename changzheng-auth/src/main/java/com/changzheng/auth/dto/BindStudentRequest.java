@@ -2,6 +2,7 @@ package com.changzheng.auth.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 /**
@@ -15,6 +16,7 @@ public class BindStudentRequest {
     private String studentNo;
 
     @NotBlank(message = "姓名不能为空")
+    @Size(max = 64, message = "姓名长度不能超过64个字符")
     private String name;
 
     private String classId;

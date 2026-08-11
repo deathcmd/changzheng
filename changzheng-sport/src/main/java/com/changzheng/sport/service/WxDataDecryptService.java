@@ -8,7 +8,9 @@ import cn.hutool.json.JSONUtil;
 import com.changzheng.common.entity.User;
 import com.changzheng.common.exception.BusinessException;
 import com.changzheng.common.result.ResultCode;
+import com.changzheng.common.security.SecretValidator;
 import com.changzheng.sport.mapper.UserMapper;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,8 +26,13 @@ public class WxDataDecryptService {
 
     private final UserMapper userMapper;
 
-    @Value("${security.aes-key:changzheng-aes-key-2024}")
+    @Value("${security.aes-key}")
     private String aesKey;
+
+    @PostConstruct
+    void validateSecrets() {
+        SecretValidator.requireAesKey(aesKey, "AES_KEY");
+    }
 
     /**
      * 解密微信加密数据

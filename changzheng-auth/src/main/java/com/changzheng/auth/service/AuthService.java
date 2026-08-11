@@ -13,7 +13,9 @@ import com.changzheng.common.entity.StudentInfo;
 import com.changzheng.common.entity.User;
 import com.changzheng.common.exception.BusinessException;
 import com.changzheng.common.result.ResultCode;
+import com.changzheng.common.security.SecretValidator;
 import com.changzheng.common.util.JwtUtils;
+import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,7 +38,7 @@ public class AuthService {
     private final UserMapper userMapper;
     private final StudentInfoMapper studentInfoMapper;
 
-    @Value("${jwt.secret:changzheng-cloud-march-secret-key-2024-very-long}")
+    @Value("${jwt.secret}")
     private String jwtSecret;
 
     @Value("${jwt.access-token-expire:7200000}")
@@ -45,8 +47,13 @@ public class AuthService {
     @Value("${jwt.refresh-token-expire:604800000}")
     private Long refreshTokenExpire;
 
-    @Value("${security.aes-key:changzheng-aes-key-2024}")
+    @Value("${security.aes-key}")
     private String aesKey;
+
+    @PostConstruct
+    void validateSecrets() {
+        SecretValidator.requireAesKey(aesKey, "AES_KEY");
+    }
 
     /**
      * 微信小程序登录
@@ -75,7 +82,7 @@ public class AuthService {
             user.setRole(0);
             user.setStatus(1);
             userMapper.insert(user);
-            log.info("新用户注册: userId={}, openid={}", user.getId(), openid);
+            log.info("新用户注册: userId={}", user.getId());
         } else {
             // 更新session_key
             user.setSessionKey(encryptSessionKey(sessionKey));
@@ -260,7 +267,7 @@ public class AuthService {
 
         if (updated) {
             userMapper.updateById(user);
-            log.info("用户资料更新成功: userId={}, nickname={}", userId, user.getNickname());
+            log.info("用户资料更新成功: userId={}", userId);
         }
     }
 

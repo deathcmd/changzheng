@@ -3,8 +3,8 @@ import { ref, computed } from 'vue'
 import { login, getAdminInfo } from '@/api/auth'
 import router from '@/router'
 
-// Mock 模式（开发环境自动启用，生产环境自动禁用）
-const USE_MOCK = import.meta.env.DEV
+// Mock 登录必须显式启用，避免开发环境无意绕过真实鉴权联调。
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token') || '')

@@ -16,19 +16,14 @@ import java.util.UUID;
 @Slf4j
 public class JwtUtils {
 
-    private static final String DEFAULT_SECRET = "changzheng-cloud-march-secret-key-2024-very-long";
-    private static final long ACCESS_TOKEN_EXPIRE = 7200 * 1000L;  // 2小时
-    private static final long REFRESH_TOKEN_EXPIRE = 7 * 24 * 3600 * 1000L;  // 7天
-
     private final SecretKey secretKey;
     private final long accessTokenExpire;
     private final long refreshTokenExpire;
 
-    public JwtUtils() {
-        this(DEFAULT_SECRET, ACCESS_TOKEN_EXPIRE, REFRESH_TOKEN_EXPIRE);
-    }
-
     public JwtUtils(String secret, long accessTokenExpire, long refreshTokenExpire) {
+        if (secret == null || secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalArgumentException("JWT secret must contain at least 32 bytes");
+        }
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessTokenExpire = accessTokenExpire;
         this.refreshTokenExpire = refreshTokenExpire;
@@ -80,10 +75,10 @@ public class JwtUtils {
                     .parseSignedClaims(token)
                     .getPayload();
         } catch (ExpiredJwtException e) {
-            log.warn("Token已过期: {}", e.getMessage());
+            log.warn("Token已过期");
             throw e;
         } catch (JwtException e) {
-            log.warn("Token解析失败: {}", e.getMessage());
+            log.warn("Token解析失败");
             throw e;
         }
     }

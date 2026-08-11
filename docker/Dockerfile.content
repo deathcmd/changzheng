@@ -4,6 +4,10 @@ LABEL maintainer="changzheng"
 ENV TZ=Asia/Shanghai
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 WORKDIR /app
-COPY changzheng-content/target/changzheng-content-1.0.0.jar app.jar
+RUN addgroup -S app && adduser -S -G app app \
+    && mkdir -p /opt/changzheng/uploads \
+    && chown -R app:app /opt/changzheng/uploads
+COPY --chown=app:app changzheng-content/target/changzheng-content-1.0.0.jar app.jar
+USER app
 EXPOSE 8083
 ENTRYPOINT ["java", "-Xms256m", "-Xmx512m", "-jar", "app.jar"]

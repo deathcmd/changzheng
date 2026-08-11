@@ -3,6 +3,7 @@ package com.changzheng.rank.service;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.changzheng.common.entity.User;
+import com.changzheng.common.security.SecretValidator;
 import com.changzheng.rank.dto.*;
 import com.changzheng.rank.mapper.RankMapper;
 import com.changzheng.rank.mapper.UserMapper;
@@ -10,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import jakarta.annotation.PostConstruct;
 
 import java.math.BigDecimal;
 import java.util.*;
@@ -25,8 +27,13 @@ public class RankService {
     private final RankMapper rankMapper;
     private final UserMapper userMapper;
     
-    @Value("${security.aes-key:changzheng2024ab}")
+    @Value("${security.aes-key}")
     private String aesKey;
+
+    @PostConstruct
+    void validateSecrets() {
+        SecretValidator.requireAesKey(aesKey, "AES_KEY");
+    }
 
     /**
      * 获取总榜（个人排行榜）
@@ -114,8 +121,8 @@ public class RankService {
         try {
             return SecureUtil.aes(aesKey.getBytes()).decryptStr(encryptedName);
         } catch (Exception e) {
-            log.warn("解密姓名失败: {}", encryptedName);
-            return encryptedName;
+            log.warn("解密排行榜姓名失败");
+            return "";
         }
     }
 

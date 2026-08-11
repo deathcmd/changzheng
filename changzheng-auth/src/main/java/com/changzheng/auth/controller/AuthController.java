@@ -11,6 +11,8 @@ import com.changzheng.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
@@ -42,7 +44,7 @@ public class AuthController {
 
     @Operation(summary = "刷新Token")
     @PostMapping("/refresh")
-    public R<LoginResponse> refreshToken(@RequestBody RefreshRequest request) {
+    public R<LoginResponse> refreshToken(@Valid @RequestBody RefreshRequest request) {
         LoginResponse response = authService.refreshToken(request.getRefreshToken());
         return R.ok(response);
     }
@@ -64,6 +66,8 @@ public class AuthController {
 
     @lombok.Data
     public static class RefreshRequest {
+        @NotBlank(message = "refreshToken不能为空")
+        @Size(max = 4096, message = "refreshToken长度超出限制")
         private String refreshToken;
     }
 }

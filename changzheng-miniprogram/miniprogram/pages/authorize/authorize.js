@@ -7,7 +7,7 @@ const USE_MOCK = config.useMock
 
 // Mock学生数据库
 const MOCK_STUDENTS = [
-  { studentNo: '2024031294', name: '李荣为', major: '软件技术', className: '软件24349', grade: '2024级', bindUserId: null },
+  { studentNo: '20240001', name: '测试用户', major: '软件技术', className: '软件2401', grade: '2024级', bindUserId: null },
   { studentNo: '20230001', name: '张三', major: '软件技术', className: '软件2301', grade: '2023级', bindUserId: null },
   { studentNo: '20230002', name: '李四', major: '软件技术', className: '软件2301', grade: '2023级', bindUserId: null },
   { studentNo: '20230003', name: '王五', major: '计算机应用技术', className: '计应2301', grade: '2023级', bindUserId: null },

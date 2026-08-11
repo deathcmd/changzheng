@@ -7,18 +7,20 @@ spring:
   cloud:
     nacos:
       discovery:
-        enabled: false
+        server-addr: ${NACOS_SERVER:127.0.0.1:8848}
+        enabled: true
       config:
         enabled: false
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
     url: jdbc:mysql://${MYSQL_HOST:127.0.0.1}:${MYSQL_PORT:3306}/changzheng_db?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&useSSL=false&allowPublicKeyRetrieval=true
     username: ${MYSQL_USER:root}
-    password: ${MYSQL_PASSWORD:changzheng123}
+    password: ${MYSQL_PASSWORD}
   data:
     redis:
       host: ${REDIS_HOST:127.0.0.1}
       port: ${REDIS_PORT:6379}
+      password: ${REDIS_PASSWORD:}
   servlet:
     multipart:
       enabled: true
@@ -34,9 +36,15 @@ mybatis-plus:
 file:
   upload:
     base-path: ${FILE_UPLOAD_PATH:/opt/changzheng/uploads}
-    base-url: ${FILE_UPLOAD_URL:https://deathcmd.cn/uploads}
+    base-url: ${FILE_UPLOAD_URL:http://localhost:8083/uploads}
     max-size: 104857600  # 100MB
+
+jwt:
+  secret: ${JWT_SECRET}
+
+cors:
+  allowed-origin: ${CORS_ALLOWED_ORIGIN:http://localhost:3000}
 
 logging:
   level:
-    com.changzheng: debug
+    com.changzheng: info

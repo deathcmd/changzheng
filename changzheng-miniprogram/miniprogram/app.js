@@ -36,7 +36,7 @@ App({
       this.globalData.token = token
       this.globalData.userInfo = userInfo
       this.globalData.isLogin = true
-      console.log('已登录，token:', token)
+      console.log('已恢复登录状态')
     } else {
       console.log('未登录')
     }
@@ -100,7 +100,7 @@ App({
           wx.setStorageSync('userInfo', mockData.userInfo)
           wx.setStorageSync('openId', mockData.openId)
 
-          console.log('[Mock] 登录成功', mockData)
+          console.log('[Mock] 登录成功')
           resolve(mockData)
         }, 500)
         return
