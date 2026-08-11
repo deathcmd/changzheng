@@ -15,3 +15,14 @@ Useful reports include the affected commit, component, impact, a minimal reprodu
 ## Security-sensitive areas
 
 Changes to authentication, gateway routing, identity headers, file upload/delete handling, encryption, deployment scripts, Docker images, dependencies, or third-party API calls require focused review and regression tests.
+
+## Current security baseline
+
+- The gateway and each Servlet service validate JWTs independently.
+- Student, administrator, and refresh tokens have separate role and usage checks.
+- Client-supplied identity headers are removed and rebuilt from verified token claims.
+- Uploads validate the allowed extension and file signature; deletion is constrained to the configured upload root.
+- Compose requires explicit secrets, keeps internal services off host ports, and runs Java containers as a non-root user.
+- GitHub Actions validates the Maven modules, the locked admin frontend build, and Compose configuration. Dependabot monitors Maven, npm, and GitHub Actions dependencies; Compose image tags currently require manual review.
+
+These controls reduce known risks but are not a guarantee that a deployment is secure. Operators remain responsible for HTTPS termination, secret rotation, backups, host patching, access logs, and reviewing local configuration changes.
