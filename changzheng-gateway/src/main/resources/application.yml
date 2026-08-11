@@ -69,7 +69,8 @@ spring:
               - DELETE
               - OPTIONS
             allowedHeaders: "*"
-            allowCredentials: true
+            # Authentication uses explicit Authorization bearer tokens, not cookies.
+            allowCredentials: false
             maxAge: 3600
 
   data:
