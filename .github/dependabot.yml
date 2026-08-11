@@ -12,6 +12,14 @@ updates:
     ignore:
       - dependency-name: "*"
         update-types: ["version-update:semver-major"]
+      # Spring Boot 3.5 uses the Spring Cloud 2025.0 compatibility line.
+      - dependency-name: "org.springframework.cloud:spring-cloud-dependencies"
+        versions: [">= 2025.1.0"]
+      - dependency-name: "com.alibaba.cloud:spring-cloud-alibaba-dependencies"
+        versions: [">= 2025.1.0.0"]
+      # Netty 4.2 is a separate compatibility line from the tested 4.1 baseline.
+      - dependency-name: "io.netty:netty-bom"
+        versions: [">= 4.2.0.Final"]
   - package-ecosystem: npm
     directory: /changzheng-admin-web
     schedule:
