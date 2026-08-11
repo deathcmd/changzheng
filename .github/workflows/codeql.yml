@@ -31,7 +31,7 @@ jobs:
           build-mode: manual
       - name: Compile Java sources
         run: ./mvnw --batch-mode --no-transfer-progress -DskipTests compile
-      - uses: github/codeql-action/analyze@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3
+      - uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
 
   javascript:
     name: JavaScript security analysis
@@ -46,4 +46,4 @@ jobs:
         with:
           languages: javascript-typescript
           build-mode: none
-      - uses: github/codeql-action/analyze@c4dd10e44af883a891fe31ced449bcb4a6728b9b # v3
+      - uses: github/codeql-action/analyze@5595ccaf912efad79be6eef63a5619ff05969be3 # v4.37.6
