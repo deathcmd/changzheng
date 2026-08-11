@@ -15,6 +15,8 @@ tempfile_*
 !**/src/test/**/target/
 
 ### IntelliJ IDEA ###
+.idea/
+**/project.private.config.json
 .idea/modules.xml
 .idea/jarRepositories.xml
 .idea/compiler.xml

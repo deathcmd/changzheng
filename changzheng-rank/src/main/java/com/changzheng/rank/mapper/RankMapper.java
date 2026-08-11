@@ -25,12 +25,12 @@ public interface RankMapper {
             u.avatar_url AS avatarUrl,
             u.class_name AS className,
             u.grade AS grade,
-            u.college AS major,
+            u.major AS major,
             u.total_mileage AS totalMileage,
             u.total_steps AS totalSteps
         FROM t_user u
         WHERE u.status = 1 AND u.student_no IS NOT NULL
-        ORDER BY u.total_mileage DESC
+        ORDER BY u.total_mileage DESC, u.id ASC
         LIMIT #{offset}, #{pageSize}
     """)
     List<PersonalRankDTO> selectTotalRank(
@@ -50,8 +50,9 @@ public interface RankMapper {
     @Select("""
         SELECT COUNT(1) + 1 AS rank
         FROM t_user
-        WHERE status = 1 AND total_mileage > (
-            SELECT total_mileage FROM t_user WHERE id = #{userId}
+        WHERE status = 1 AND student_no IS NOT NULL AND (
+            total_mileage > (SELECT total_mileage FROM t_user WHERE id = #{userId})
+            OR (total_mileage = (SELECT total_mileage FROM t_user WHERE id = #{userId}) AND id < #{userId})
         )
     """)
     Integer selectUserRank(@Param("userId") Long userId);
@@ -67,12 +68,12 @@ public interface RankMapper {
             u.avatar_url AS avatarUrl,
             u.class_name AS className,
             u.grade AS grade,
-            u.college AS major,
+            u.major AS major,
             u.total_mileage AS totalMileage,
             u.total_steps AS totalSteps
         FROM t_user u
         WHERE u.status = 1 AND u.student_no IS NOT NULL AND u.grade = #{grade}
-        ORDER BY u.total_mileage DESC
+        ORDER BY u.total_mileage DESC, u.id ASC
         LIMIT #{offset}, #{pageSize}
     """)
     List<PersonalRankDTO> selectRankByGrade(

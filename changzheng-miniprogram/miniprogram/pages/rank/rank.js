@@ -68,10 +68,11 @@ Page({
         const list = res.data.records || res.data.list || []
         const total = res.data.total || 0
         const userGrade = res.data.userGrade || ''
+        const rankList = page === 1 ? list : [...this.data.rankList, ...list]
         
         this.setData({
-          rankList: page === 1 ? list : [...this.data.rankList, ...list],
-          hasMore: this.data.rankList.length + list.length < total,
+          rankList,
+          hasMore: rankList.length < total,
           userGrade: userGrade
         })
       }
@@ -128,7 +129,6 @@ Page({
   onUserTap(e) {
     const { item } = e.currentTarget.dataset
     // 可以跳转到用户主页或查看详情
-    console.log('查看用户', item)
   },
 
   // 去登录

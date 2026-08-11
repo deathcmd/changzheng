@@ -24,8 +24,8 @@ fi
 
 docker compose --env-file "$ENV_FILE" config --quiet
 
-if ! command -v mvn >/dev/null 2>&1; then
-  echo "Maven 3.8+ is required to build the backend." >&2
+if [[ ! -x "$PROJECT_DIR/mvnw" ]]; then
+  echo "The Maven Wrapper is missing or not executable." >&2
   exit 1
 fi
 if ! command -v npm >/dev/null 2>&1; then
@@ -33,8 +33,8 @@ if ! command -v npm >/dev/null 2>&1; then
   exit 1
 fi
 
-mvn --batch-mode clean package
-npm --prefix changzheng-admin-web ci
+"$PROJECT_DIR/mvnw" --batch-mode --no-transfer-progress clean verify
+npm --prefix changzheng-admin-web ci --ignore-scripts
 npm --prefix changzheng-admin-web run build
 
 docker compose --env-file "$ENV_FILE" build --pull

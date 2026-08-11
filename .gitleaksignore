@@ -1,0 +1,6 @@
+# Reviewed non-secret fixture values. Keep each exception fingerprint-specific.
+5016a1aafdf9bf1da68c8af3edfb5149ce65f3b1:.env.example:generic-api-key:6
+5016a1aafdf9bf1da68c8af3edfb5149ce65f3b1:changzheng-gateway/src/test/java/com/changzheng/gateway/filter/JwtAuthFilterTest.java:generic-api-key:20
+5016a1aafdf9bf1da68c8af3edfb5149ce65f3b1:changzheng-common/src/test/java/com/changzheng/common/security/JwtHeaderAuthenticationFilterTest.java:generic-api-key:21
+.env.example:generic-api-key:6
+changzheng-gateway/src/test/java/com/changzheng/gateway/filter/JwtAuthFilterTest.java:generic-api-key:20

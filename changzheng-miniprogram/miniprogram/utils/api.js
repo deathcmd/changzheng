@@ -14,7 +14,7 @@ const bindStudent = (data) => {
 
 // 获取用户信息
 const getUserInfo = () => {
-  return request.get('/api/auth/user/info')
+  return request.get('/api/auth/userInfo')
 }
 
 // 更新用户资料(头像昵称)
@@ -36,11 +36,6 @@ const getMileageOverview = () => {
 // 获取每日步数记录
 const getDailySteps = (params) => {
   return request.get('/api/sport/dailySteps', params)
-}
-
-// 获取里程流水
-const getMileageLedger = (params) => {
-  return request.get('/api/sport/mileage/ledger', params)
 }
 
 // ==================== 路线节点模块 ====================
@@ -91,17 +86,6 @@ const getMyRank = () => {
   return request.get('/api/rank/my')
 }
 
-// ==================== 成就模块 ====================
-// 获取成就列表
-const getAchievements = () => {
-  return request.get('/api/rank/achievements')
-}
-
-// 获取用户成就
-const getUserAchievements = () => {
-  return request.get('/api/rank/user/achievements')
-}
-
 // ==================== 系统配置 ====================
 // 获取系统配置
 const getSystemConfig = () => {
@@ -123,7 +107,6 @@ module.exports = {
   syncSteps,
   getMileageOverview,
   getDailySteps,
-  getMileageLedger,
   // 路线节点
   getRouteNodes,
   getNodeDetail,
@@ -135,9 +118,6 @@ module.exports = {
   getTotalRank,
   getGradeRank,
   getMyRank,
-  // 成就
-  getAchievements,
-  getUserAchievements,
   // 系统
   getSystemConfig,
   getBanners

@@ -11,7 +11,7 @@
 
     <el-alert type="info" :closable="false" style="margin-bottom: 20px">
       <template #title>
-        当用户里程达到 <strong>{{ nodeInfo.mileageThreshold }} 公里</strong> 时，将解锁此节点并自动弹出以下内容供学习
+        当用户里程达到 <strong>{{ nodeInfo.mileageThreshold }} 公里</strong> 时，将解锁此节点及以下学习内容
       </template>
     </el-alert>
 
@@ -30,11 +30,6 @@
       </el-table-column>
       <el-table-column prop="title" label="标题" min-width="200" />
       <el-table-column prop="duration" label="时长/字数" width="120" />
-      <el-table-column label="自动播放" width="100">
-        <template #default="{ row }">
-          <el-switch v-model="row.autoPlay" @change="updateContent(row)" />
-        </template>
-      </el-table-column>
       <el-table-column label="状态" width="100">
         <template #default="{ row }">
           <el-switch v-model="row.enabled" @change="updateContent(row)" />
@@ -44,7 +39,7 @@
         <template #default="{ row }">
           <el-button size="small" @click="previewContent(row)">预览</el-button>
           <el-button size="small" @click="editContent(row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="deleteContent(row)">删除</el-button>
+          <el-button size="small" type="danger" @click="deleteContent(row)">停用</el-button>
         </template>
       </el-table-column>
     </el-table>
@@ -143,7 +138,7 @@
             v-model="form.content" 
             type="textarea" 
             :rows="10" 
-            placeholder="请输入文章内容，支持HTML格式"
+            placeholder="请输入文章纯文本内容"
           />
         </el-form-item>
 
@@ -169,11 +164,6 @@
           <el-input-number v-model="form.sortOrder" :min="1" :max="100" />
         </el-form-item>
 
-        <el-form-item label="自动播放">
-          <el-switch v-model="form.autoPlay" />
-          <span class="form-tip" style="margin-left: 10px">开启后，用户解锁节点时自动弹出此内容</span>
-        </el-form-item>
-
         <el-form-item label="启用状态">
           <el-switch v-model="form.enabled" />
         </el-form-item>
@@ -197,7 +187,7 @@
       </div>
       <!-- 文章预览 -->
       <div v-else-if="previewData.contentType === 'article'" class="preview-container article">
-        <div v-html="previewData.content"></div>
+        <div class="article-text">{{ previewData.content }}</div>
       </div>
       <!-- 图片预览 -->
       <div v-else-if="previewData.contentType === 'image'" class="preview-container">
@@ -213,6 +203,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { ArrowLeft, Plus, VideoCamera, Headset, Document, Picture } from '@element-plus/icons-vue'
 import { uploadImage, uploadAudio, uploadVideo } from '@/api/upload'
+import { getNodeDetail, getNodeContents, saveNodeContent, deleteNodeContent } from '@/api/node'
 
 const route = useRoute()
 const router = useRouter()
@@ -221,26 +212,6 @@ const nodeId = route.params.id
 // 上传状态
 const uploading = ref(false)
 const coverUploading = ref(false)
-
-// Mock 数据
-const mockNodes = {
-  1: { id: 1, nodeName: '瑞金', mileageThreshold: 0 },
-  2: { id: 2, nodeName: '于都', mileageThreshold: 60 },
-  3: { id: 3, nodeName: '湘江', mileageThreshold: 400 },
-  4: { id: 4, nodeName: '遵义', mileageThreshold: 1200 },
-  5: { id: 5, nodeName: '赤水河', mileageThreshold: 1500 },
-  6: { id: 6, nodeName: '金沙江', mileageThreshold: 2500 },
-  7: { id: 7, nodeName: '泸定桥', mileageThreshold: 3500 },
-  8: { id: 8, nodeName: '夹金山', mileageThreshold: 4000 },
-  9: { id: 9, nodeName: '草地', mileageThreshold: 5000 },
-  10: { id: 10, nodeName: '会宁', mileageThreshold: 25000 }
-}
-
-const mockContents = [
-  { id: 1, nodeId: 1, contentType: 'video', title: '长征出发：从瑞金说起', duration: '8分钟', mediaUrl: 'https://example.com/video1.mp4', coverUrl: '', sortOrder: 1, autoPlay: true, enabled: true },
-  { id: 2, nodeId: 1, contentType: 'article', title: '瑞金：红色故都的历史', duration: '2000字', content: '<h3>瑞金简介</h3><p>瑞金位于江西省东南部，是著名的红色故都、共和国摇篮...</p>', coverUrl: '', sortOrder: 2, autoPlay: false, enabled: true },
-  { id: 3, nodeId: 1, contentType: 'audio', title: '红军长征歌曲精选', duration: '15分钟', mediaUrl: 'https://example.com/audio1.mp3', coverUrl: '', sortOrder: 3, autoPlay: false, enabled: true }
-]
 
 const loading = ref(false)
 const dialogVisible = ref(false)
@@ -261,7 +232,7 @@ const form = reactive({
   content: '',
   coverUrl: '',
   sortOrder: 1,
-  autoPlay: true,
+  autoPlay: false,
   enabled: true
 })
 
@@ -275,19 +246,30 @@ onMounted(() => {
   loadContents()
 })
 
-function loadNodeInfo() {
-  const node = mockNodes[nodeId]
-  if (node) {
-    Object.assign(nodeInfo, node)
+async function loadNodeInfo() {
+  try {
+    const res = await getNodeDetail(nodeId)
+    Object.assign(nodeInfo, res.data)
+  } catch (error) {
+    console.error('加载节点失败:', error)
+    ElMessage.error('无法加载节点信息')
   }
 }
 
-function loadContents() {
+async function loadContents() {
   loading.value = true
-  setTimeout(() => {
-    contentList.value = mockContents.filter(c => c.nodeId == nodeId)
+  try {
+    const res = await getNodeContents(nodeId)
+    contentList.value = (res.data || []).map(item => ({
+      ...item,
+      autoPlay: item.autoPlay === true || item.autoPlay === 1,
+      enabled: item.enabled === true || item.enabled === 1
+    }))
+  } catch (error) {
+    console.error('加载内容失败:', error)
+  } finally {
     loading.value = false
-  }, 300)
+  }
 }
 
 function goBack() {
@@ -314,7 +296,7 @@ function showAddDialog() {
   Object.assign(form, {
     id: null, contentType: 'video', title: '', duration: '', 
     mediaUrl: '', content: '', coverUrl: '', sortOrder: contentList.value.length + 1, 
-    autoPlay: true, enabled: true
+    autoPlay: false, enabled: true
   })
   dialogVisible.value = true
 }
@@ -334,28 +316,31 @@ async function submitForm() {
   const valid = await formRef.value?.validate()
   if (!valid) return
 
-  if (isEdit.value) {
-    const idx = contentList.value.findIndex(c => c.id === form.id)
-    if (idx > -1) contentList.value[idx] = { ...form }
-    ElMessage.success('更新成功')
-  } else {
-    contentList.value.push({ ...form, id: Date.now(), nodeId: parseInt(nodeId) })
-    ElMessage.success('添加成功')
-  }
+  await saveNodeContent(nodeId, { ...form })
+  ElMessage.success(isEdit.value ? '更新成功' : '添加成功')
   dialogVisible.value = false
+  await loadContents()
 }
 
-function updateContent(row) {
-  ElMessage.success('更新成功')
+async function updateContent(row) {
+  try {
+    await saveNodeContent(nodeId, { ...row })
+    ElMessage.success('更新成功')
+  } catch (error) {
+    console.error('更新内容失败:', error)
+    await loadContents()
+  }
 }
 
-function deleteContent(row) {
-  ElMessageBox.confirm(`确定删除"${row.title}"吗？`, '提示', { type: 'warning' })
-    .then(() => {
-      contentList.value = contentList.value.filter(c => c.id !== row.id)
-      ElMessage.success('删除成功')
-    })
-    .catch(() => {})
+async function deleteContent(row) {
+  try {
+    await ElMessageBox.confirm(`确定停用"${row.title}"吗？`, '提示', { type: 'warning' })
+    await deleteNodeContent(nodeId, row.id)
+    ElMessage.success('停用成功')
+    await loadContents()
+  } catch (error) {
+    if (error !== 'cancel') console.error('删除内容失败:', error)
+  }
 }
 
 // 文件上传处理
@@ -461,6 +446,11 @@ async function handleCoverUpload(file) {
       line-height: 1.8;
       max-height: 500px;
       overflow-y: auto;
+
+      .article-text {
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+      }
     }
   }
 }

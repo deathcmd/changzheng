@@ -3,7 +3,7 @@
 // 模拟用户信息
 const mockUserInfo = {
   id: 1,
-  openId: 'mock_openid_123',
+  userId: 1,
   nickName: '', // 默认为空，需要用户设置
   avatarUrl: '', // 默认为空，需要用户设置
   studentId: '',
@@ -61,7 +61,7 @@ const mockResponses = {
     data: {
       token: 'mock_token_' + Date.now(),
       userInfo: mockUserInfo,
-      openId: 'mock_openid_123'
+      userId: 1
     }
   },
   

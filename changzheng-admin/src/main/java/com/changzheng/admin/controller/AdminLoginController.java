@@ -24,22 +24,14 @@ public class AdminLoginController {
     @Operation(summary = "管理员登录")
     @PostMapping("/login")
     public R<AdminLoginResponse> login(@Valid @RequestBody AdminLoginDTO dto) {
-        try {
-            AdminLoginResponse response = adminAuthService.login(dto);
-            return R.ok(response);
-        } catch (Exception e) {
-            return R.fail("用户名或密码错误");
-        }
+        AdminLoginResponse response = adminAuthService.login(dto);
+        return R.ok(response);
     }
 
     @Operation(summary = "获取管理员信息")
     @GetMapping("/info")
     public R<AdminLoginResponse.AdminInfo> getAdminInfo(@RequestHeader("X-Admin-Id") Long adminId) {
-        try {
-            AdminLoginResponse.AdminInfo info = adminAuthService.getAdminInfo(adminId);
-            return R.ok(info);
-        } catch (Exception e) {
-            return R.fail("无法获取管理员信息");
-        }
+        AdminLoginResponse.AdminInfo info = adminAuthService.getAdminInfo(adminId);
+        return R.ok(info);
     }
 }

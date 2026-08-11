@@ -6,11 +6,12 @@ By intentionally submitting a contribution for inclusion in this repository, you
 
 ## Development checks
 
-Use JDK 17, Maven 3.8+, and Node.js 20.19+ (or 22.12+).
+Use JDK 17 and Node.js 20.19+ (or 22.12+). The checked-in Maven Wrapper pins Maven 3.9.11.
 
-    mvn --batch-mode verify
-    npm --prefix changzheng-admin-web ci
+    ./mvnw --batch-mode --no-transfer-progress clean verify
+    npm --prefix changzheng-admin-web ci --ignore-scripts
     npm --prefix changzheng-admin-web run build
+    npm --prefix changzheng-admin-web audit --audit-level=high
     docker compose --env-file .env.example config --quiet
 
 Never commit .env, credentials, JWTs, WeChat codes or session keys, database exports, student records, upload contents, node_modules, or generated dist files.
@@ -28,4 +29,4 @@ Never commit .env, credentials, JWTs, WeChat codes or session keys, database exp
 
 Report vulnerabilities according to SECURITY.md, not in a public pull request.
 
-Before starting development, review [使用文档.md](使用文档.md) for known client/server integration gaps and [部署文档.md](部署文档.md) for the supported Compose workflow.
+Before starting development, review [使用文档.md](使用文档.md) for current implementation boundaries, [ROADMAP.md](ROADMAP.md) for planned work, and [部署文档.md](部署文档.md) for the supported Compose workflow.

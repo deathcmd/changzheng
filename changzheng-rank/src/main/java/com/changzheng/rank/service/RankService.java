@@ -3,6 +3,8 @@ package com.changzheng.rank.service;
 import cn.hutool.core.util.StrUtil;
 import cn.hutool.crypto.SecureUtil;
 import com.changzheng.common.entity.User;
+import com.changzheng.common.exception.BusinessException;
+import com.changzheng.common.result.ResultCode;
 import com.changzheng.common.security.SecretValidator;
 import com.changzheng.rank.dto.*;
 import com.changzheng.rank.mapper.RankMapper;
@@ -14,6 +16,7 @@ import org.springframework.stereotype.Service;
 import jakarta.annotation.PostConstruct;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 /**
@@ -62,7 +65,8 @@ public class RankService {
     public Map<String, Object> getGradeRank(Long userId, int page, int pageSize) {
         // 获取用户年级
         User user = userMapper.selectById(userId);
-        if (user == null || user.getGrade() == null) {
+        requireActiveUser(user);
+        if (user.getGrade() == null) {
             Map<String, Object> result = new HashMap<>();
             result.put("records", new ArrayList<>());
             result.put("total", 0);
@@ -94,13 +98,12 @@ public class RankService {
      */
     public MyRankDTO getMyRank(Long userId) {
         User user = userMapper.selectById(userId);
-        if (user == null) {
-            return null;
-        }
+        requireActiveUser(user);
         
         MyRankDTO dto = new MyRankDTO();
         dto.setRealName(maskName(decryptName(user.getName())));
         dto.setClassName(user.getClassName());
+        dto.setMajor(user.getMajor());
         dto.setAvatarUrl(user.getAvatarUrl());
         dto.setTotalMileage(user.getTotalMileage() != null ? user.getTotalMileage() : BigDecimal.ZERO);
         
@@ -111,6 +114,15 @@ public class RankService {
         return dto;
     }
 
+    private void requireActiveUser(User user) {
+        if (user == null) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        if (!Integer.valueOf(1).equals(user.getStatus())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "用户已被禁用");
+        }
+    }
+
     /**
      * 解密姓名
      */
@@ -119,7 +131,7 @@ public class RankService {
             return "";
         }
         try {
-            return SecureUtil.aes(aesKey.getBytes()).decryptStr(encryptedName);
+            return SecureUtil.aes(aesKey.getBytes(StandardCharsets.UTF_8)).decryptStr(encryptedName);
         } catch (Exception e) {
             log.warn("解密排行榜姓名失败");
             return "";

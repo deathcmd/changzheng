@@ -1,6 +1,5 @@
 package com.changzheng.sport;
 
-import org.apache.rocketmq.spring.autoconfigure.RocketMQAutoConfiguration;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -10,7 +9,7 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 /**
  * 运动服务启动类
  */
-@SpringBootApplication(scanBasePackages = "com.changzheng", exclude = {RocketMQAutoConfiguration.class})
+@SpringBootApplication(scanBasePackages = "com.changzheng")
 @EnableDiscoveryClient
 @EnableScheduling
 @MapperScan("com.changzheng.sport.mapper")

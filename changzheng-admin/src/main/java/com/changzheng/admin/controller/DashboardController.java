@@ -4,6 +4,7 @@ import com.changzheng.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 
@@ -22,13 +23,15 @@ public class DashboardController {
 
     private final JdbcTemplate jdbcTemplate;
 
+    @Value("${sport.total-distance:25000}")
+    private double totalDistance;
+
     @Operation(summary = "获取仪表盘统计数据")
     @GetMapping("/dashboard")
     public R<Map<String, Object>> getDashboardStats() {
         Map<String, Object> stats = new HashMap<>();
         
-        try {
-            // 总用户数
+        // 总用户数
             Integer totalUsers = jdbcTemplate.queryForObject(
                 "SELECT COUNT(*) FROM t_user WHERE status = 1", Integer.class);
             stats.put("totalUsers", totalUsers != null ? totalUsers : 0);
@@ -44,9 +47,10 @@ public class DashboardController {
                 "SELECT COALESCE(AVG(total_mileage), 0) FROM t_user WHERE status = 1", Double.class);
             stats.put("averageMileage", avgMileage != null ? Math.round(avgMileage * 10) / 10.0 : 0);
             
-            // 完成率（完成长征的用户 / 总用户，长征总里程25000km）
+            // 完成率（达到配置路线总里程的用户 / 总用户）
             Integer completedCount = jdbcTemplate.queryForObject(
-                "SELECT COUNT(*) FROM t_user WHERE total_mileage >= 25000 AND status = 1", Integer.class);
+                "SELECT COUNT(*) FROM t_user WHERE total_mileage >= ? AND status = 1",
+                Integer.class, totalDistance);
             double completionRate = 0;
             if (totalUsers != null && totalUsers > 0) {
                 completionRate = (completedCount != null ? completedCount : 0) * 1.0 / totalUsers;
@@ -69,31 +73,15 @@ public class DashboardController {
             stats.put("dailyActiveStats", dailyActiveStats);
             
             // 节点解锁Top10（从t_user_node_progress表统计）
-            List<Map<String, Object>> nodeClickStats = new ArrayList<>();
-            try {
-                List<Map<String, Object>> nodes = jdbcTemplate.queryForList(
-                    "SELECT n.node_name as nodeName, COUNT(up.id) as viewCount " +
-                    "FROM t_route_node n " +
-                    "LEFT JOIN t_user_node_progress up ON n.id = up.node_id AND up.unlock_status = 1 " +
-                    "WHERE n.status = 1 " +
-                    "GROUP BY n.id, n.node_name " +
-                    "ORDER BY viewCount DESC " +
-                    "LIMIT 10");
-                nodeClickStats.addAll(nodes);
-            } catch (Exception e) {
-                // 如果查询失败，返回空列表
-            }
+            List<Map<String, Object>> nodeClickStats = jdbcTemplate.queryForList(
+                "SELECT n.node_name as nodeName, COUNT(up.id) as viewCount " +
+                "FROM t_route_node n " +
+                "LEFT JOIN t_user_node_progress up ON n.id = up.node_id AND up.unlock_status = 1 " +
+                "WHERE n.status = 1 " +
+                "GROUP BY n.id, n.node_name " +
+                "ORDER BY viewCount DESC " +
+                "LIMIT 10");
             stats.put("nodeClickStats", nodeClickStats);
-            
-        } catch (Exception e) {
-            // 表可能不存在，返回默认值
-            stats.put("totalUsers", 0);
-            stats.put("activeUsersToday", 0);
-            stats.put("averageMileage", 0);
-            stats.put("completionRate", 0);
-            stats.put("dailyActiveStats", Collections.emptyList());
-            stats.put("nodeClickStats", Collections.emptyList());
-        }
         
         return R.ok(stats);
     }

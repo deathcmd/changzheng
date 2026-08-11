@@ -2,6 +2,7 @@ package com.changzheng.admin.service;
 
 import cn.hutool.poi.excel.ExcelReader;
 import cn.hutool.poi.excel.ExcelUtil;
+import cn.hutool.poi.excel.ExcelWriter;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -18,10 +19,14 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.Locale;
+import java.util.Arrays;
+import java.util.Objects;
 
 /**
  * 学生信息服务
@@ -30,6 +35,9 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class StudentService {
+
+    private static final long MAX_IMPORT_BYTES = 5L * 1024 * 1024;
+    private static final int MAX_IMPORT_ROWS = 5_000;
 
     private final StudentInfoMapper studentInfoMapper;
 
@@ -91,12 +99,16 @@ public class StudentService {
      */
     @Transactional
     public StudentImportResult importStudents(MultipartFile file) {
+        validateImportFile(file);
         StudentImportResult result = new StudentImportResult();
         String batchNo = UUID.randomUUID().toString().substring(0, 8);
         
         try (InputStream inputStream = file.getInputStream()) {
             ExcelReader reader = ExcelUtil.getReader(inputStream);
             List<Map<String, Object>> rows = reader.readAll();
+            if (rows.size() > MAX_IMPORT_ROWS) {
+                throw new BusinessException("单次导入不能超过" + MAX_IMPORT_ROWS + "行");
+            }
             
             int successCount = 0;
             int updateCount = 0;
@@ -111,11 +123,17 @@ public class StudentService {
                         failCount++;
                         continue;
                     }
+                    validateStudentFields(studentNo, name,
+                            getStringValue(row, "性别"), getStringValue(row, "专业"),
+                            getStringValue(row, "班级"), getStringValue(row, "年级"),
+                            getStringValue(row, "手机号"));
                     
                     // 查找是否已存在
                     StudentInfo existing = studentInfoMapper.selectByStudentNo(studentNo);
                     
                     if (existing != null) {
+                        rejectBoundIdentityChange(existing, name, getStringValue(row, "专业"),
+                                getStringValue(row, "班级"), getStringValue(row, "年级"));
                         // 更新已有记录
                         existing.setName(name);
                         existing.setGender(getStringValue(row, "性别"));
@@ -150,8 +168,9 @@ public class StudentService {
                         studentInfoMapper.insert(student);
                         successCount++;
                     }
-                } catch (Exception e) {
-                    log.error("导入学生数据失败: {}", e.getMessage());
+                } catch (BusinessException e) {
+                    log.debug("学生导入行处理失败: batch={}, exceptionType={}",
+                            batchNo, e.getClass().getSimpleName());
                     failCount++;
                 }
             }
@@ -166,9 +185,11 @@ public class StudentService {
             log.info("学生数据导入完成: 批次={}, 总数={}, 新增={}, 更新={}, 失败={}", 
                     batchNo, rows.size(), successCount, updateCount, failCount);
             
+        } catch (BusinessException e) {
+            throw e;
         } catch (Exception e) {
             log.error("导入学生数据异常", e);
-            throw new BusinessException("导入失败: " + e.getMessage());
+            throw new BusinessException("导入失败，请确认文件格式和字段内容");
         }
         
         return result;
@@ -182,6 +203,10 @@ public class StudentService {
         if (existing == null) {
             throw new BusinessException("学生不存在");
         }
+        validateStudentFields(existing.getStudentNo(), student.getName(), student.getGender(),
+                student.getMajor(), student.getClassName(), student.getGrade(), student.getPhone());
+        rejectBoundIdentityChange(existing, student.getName(), student.getMajor(),
+                student.getClassName(), student.getGrade());
         
         existing.setName(student.getName());
         existing.setGender(student.getGender());
@@ -194,12 +219,34 @@ public class StudentService {
     }
 
     /**
-     * 删除学生
+     * 生成与导入接口完全一致的 Office Open XML 模板。
+     */
+    public byte[] createImportTemplate() {
+        try (ByteArrayOutputStream output = new ByteArrayOutputStream();
+             ExcelWriter writer = ExcelUtil.getWriter(true)) {
+            writer.write(Arrays.asList(
+                    Arrays.asList("学号", "姓名", "性别", "专业", "班级", "年级", "手机号"),
+                    Arrays.asList("20230001", "张三", "男", "软件技术", "软件2301", "2023级", "13800000001"),
+                    Arrays.asList("20230002", "李四", "女", "计算机应用技术", "计应2301", "2023级", "13800000002")
+            ), false);
+            writer.flush(output, false);
+            return output.toByteArray();
+        } catch (Exception e) {
+            log.error("生成学生导入模板失败", e);
+            throw new BusinessException("模板生成失败，请稍后重试");
+        }
+    }
+
+    /**
+     * 停用学生
      */
     public void deleteStudent(Long id) {
         StudentInfo existing = studentInfoMapper.selectById(id);
         if (existing == null) {
             throw new BusinessException("学生不存在");
+        }
+        if (Integer.valueOf(1).equals(existing.getIsBound())) {
+            throw new BusinessException("已绑定学生不能停用，请先解绑");
         }
         
         // 软删除
@@ -222,8 +269,15 @@ public class StudentService {
             throw new BusinessException("该学生尚未绑定微信");
         }
         
-        // 1. 清除用户表的学号绑定
-        studentInfoMapper.clearUserStudentNo(existing.getStudentNo());
+        Long boundUserId = existing.getBoundUserId();
+        if (boundUserId == null) {
+            throw new BusinessException("绑定数据异常，请检查学生记录");
+        }
+
+        // 1. Clear the encrypted user-side binding using the authoritative id.
+        if (studentInfoMapper.clearUserBinding(boundUserId) != 1) {
+            throw new BusinessException("绑定用户不存在，解绑操作已取消");
+        }
         
         // 2. 清除学生信息表的绑定状态
         existing.setIsBound(0);
@@ -231,8 +285,54 @@ public class StudentService {
         existing.setBoundAt(null);
         studentInfoMapper.updateById(existing);
         
-        log.warn("管理员解绑学生: studentId={}, studentNo={}, 原绑定用户ID={}", 
-                id, existing.getStudentNo(), existing.getBoundUserId());
+        log.warn("管理员解绑学生: studentId={}, 原绑定用户ID={}", id, boundUserId);
+    }
+
+    private void validateImportFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new BusinessException("请选择要导入的文件");
+        }
+        if (file.getSize() > MAX_IMPORT_BYTES) {
+            throw new BusinessException("导入文件不能超过5MB");
+        }
+        String filename = file.getOriginalFilename();
+        String lower = filename == null ? "" : filename.toLowerCase(Locale.ROOT);
+        if (!lower.endsWith(".xlsx") && !lower.endsWith(".xls")) {
+            throw new BusinessException("仅支持 .xlsx 或 .xls 文件");
+        }
+    }
+
+    private void rejectBoundIdentityChange(StudentInfo existing, String name, String major,
+                                           String className, String grade) {
+        if (!Integer.valueOf(1).equals(existing.getIsBound())) {
+            return;
+        }
+        if (!Objects.equals(existing.getName(), name)
+                || !Objects.equals(existing.getMajor(), major)
+                || !Objects.equals(existing.getClassName(), className)
+                || !Objects.equals(existing.getGrade(), grade)) {
+            throw new BusinessException("已绑定学生的姓名、专业、班级或年级不能直接修改，请先解绑");
+        }
+    }
+
+    private void validateStudentFields(String studentNo, String name, String gender, String major,
+                                       String className, String grade, String phone) {
+        if (studentNo == null || !studentNo.matches("\\d{8,12}")) {
+            throw new BusinessException("学号必须为8至12位数字");
+        }
+        requireLength(name, "姓名", 1, 64);
+        requireLength(gender, "性别", 0, 4);
+        requireLength(major, "专业", 0, 64);
+        requireLength(className, "班级", 0, 64);
+        requireLength(grade, "年级", 0, 16);
+        requireLength(phone, "手机号", 0, 20);
+    }
+
+    private void requireLength(String value, String label, int min, int max) {
+        int length = value == null ? 0 : value.trim().length();
+        if (length < min || length > max) {
+            throw new BusinessException(label + "长度不符合要求");
+        }
     }
 
     private String getStringValue(Map<String, Object> row, String key) {

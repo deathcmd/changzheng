@@ -34,8 +34,12 @@ public interface StudentInfoMapper extends BaseMapper<StudentInfo> {
     int countBound();
     
     /**
-     * 清除用户表的学号绑定（解绑时使用）
+     * Clear every denormalised student field by the authoritative bound user id.
+     * t_user.student_no is encrypted and cannot be matched against the plaintext
+     * value stored in t_student_info.
      */
-    @Update("UPDATE t_user SET student_no = NULL WHERE student_no = #{studentNo}")
-    int clearUserStudentNo(@Param("studentNo") String studentNo);
+    @Update("UPDATE t_user SET student_no = NULL, student_no_suffix = NULL, name = NULL, " +
+            "class_id = NULL, class_name = NULL, grade = NULL, college = NULL, major = NULL, enroll_year = NULL " +
+            "WHERE id = #{userId}")
+    int clearUserBinding(@Param("userId") Long userId);
 }

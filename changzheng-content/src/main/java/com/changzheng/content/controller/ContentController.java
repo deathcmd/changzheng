@@ -1,7 +1,6 @@
 package com.changzheng.content.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.changzheng.common.entity.RouteNode;
+import com.changzheng.common.exception.BusinessException;
 import com.changzheng.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -42,7 +41,7 @@ public class ContentController {
             "SELECT id, node_code as nodeCode, node_name as nodeName, " +
             "mileage_threshold as mileageThreshold, sort_order as sortOrder, " +
             "longitude, latitude, description, icon_url as iconUrl, status " +
-            "FROM t_route_node WHERE id = ?", nodeId
+            "FROM t_route_node WHERE id = ? AND status = 1", nodeId
         );
         if (nodes.isEmpty()) {
             return R.fail("节点不存在");
@@ -52,24 +51,33 @@ public class ContentController {
 
     @Operation(summary = "获取节点学习内容")
     @GetMapping("/node/{nodeId}/contents")
-    public R<List<Map<String, Object>>> getNodeContents(@PathVariable("nodeId") Long nodeId) {
+    public R<List<Map<String, Object>>> getNodeContents(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable("nodeId") Long nodeId) {
+        requireUnlockedNode(userId, nodeId);
         List<Map<String, Object>> contents = jdbcTemplate.queryForList(
-            "SELECT id, node_id as nodeId, 'video' as contentType, " +
-            "title, video_duration as duration, video_url as mediaUrl, video_cover_url as coverUrl, " +
-            "content_text as content, is_current as status " +
-            "FROM t_node_content WHERE node_id = ? AND is_current = 1 ORDER BY version DESC", nodeId
+            "SELECT id, node_id as nodeId, content_type as contentType, " +
+            "title, duration_label as duration, media_url as mediaUrl, cover_url as coverUrl, " +
+            "content_text as content, status " +
+            "FROM t_node_content WHERE node_id = ? AND is_current = 1 AND status = 1 " +
+            "ORDER BY sort_order ASC, id ASC", nodeId
         );
         return R.ok(contents);
     }
 
     @Operation(summary = "获取内容详情")
     @GetMapping("/detail/{contentId}")
-    public R<Map<String, Object>> getContentDetail(@PathVariable("contentId") Long contentId) {
+    public R<Map<String, Object>> getContentDetail(
+            @RequestHeader("X-User-Id") Long userId,
+            @PathVariable("contentId") Long contentId) {
         List<Map<String, Object>> contents = jdbcTemplate.queryForList(
-            "SELECT id, node_id as nodeId, 'video' as contentType, " +
-            "title, video_duration as duration, video_url as mediaUrl, video_cover_url as coverUrl, " +
-            "content_text as content, content_summary as summary " +
-            "FROM t_node_content WHERE id = ?", contentId
+            "SELECT c.id, c.node_id as nodeId, c.content_type as contentType, " +
+            "c.title, c.duration_label as duration, c.media_url as mediaUrl, c.cover_url as coverUrl, " +
+            "c.content_text as content, c.content_summary as summary " +
+            "FROM t_node_content c INNER JOIN t_user_node_progress p " +
+            "ON p.node_id = c.node_id AND p.user_id = ? AND p.unlock_status = 1 " +
+            "INNER JOIN t_user u ON u.id = p.user_id AND u.status = 1 " +
+            "WHERE c.id = ? AND c.is_current = 1 AND c.status = 1", userId, contentId
         );
         if (contents.isEmpty()) {
             return R.fail("内容不存在");
@@ -81,16 +89,31 @@ public class ContentController {
     @PostMapping("/learned/{contentId}")
     public R<String> markContentLearned(@RequestHeader("X-User-Id") Long userId,
                                         @PathVariable("contentId") Long contentId) {
-        // 简单实现：记录学习记录
-        try {
-            jdbcTemplate.update(
-                "INSERT INTO t_user_learn_record (user_id, content_id, learned_at) " +
-                "VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE learned_at = NOW()",
-                userId, contentId
-            );
-        } catch (Exception e) {
-            // 表可能不存在，忽略
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM t_node_content c INNER JOIN t_user_node_progress p " +
+                        "ON p.node_id = c.node_id AND p.user_id = ? AND p.unlock_status = 1 " +
+                        "INNER JOIN t_user u ON u.id = p.user_id AND u.status = 1 " +
+                        "WHERE c.id = ? AND c.is_current = 1 AND c.status = 1",
+                Integer.class, userId, contentId);
+        if (count == null || count == 0) {
+            throw new BusinessException("内容不存在或已禁用");
         }
+        jdbcTemplate.update(
+            "INSERT INTO t_user_learn_record (user_id, content_id, learned_at) " +
+            "VALUES (?, ?, NOW()) ON DUPLICATE KEY UPDATE learned_at = NOW()",
+            userId, contentId
+        );
         return R.ok("标记成功");
+    }
+
+    private void requireUnlockedNode(Long userId, Long nodeId) {
+        Integer count = jdbcTemplate.queryForObject(
+                "SELECT COUNT(*) FROM t_user_node_progress p " +
+                        "INNER JOIN t_user u ON u.id = p.user_id AND u.status = 1 " +
+                        "WHERE p.user_id = ? AND p.node_id = ? AND p.unlock_status = 1",
+                Integer.class, userId, nodeId);
+        if (count == null || count == 0) {
+            throw new BusinessException(com.changzheng.common.result.ResultCode.NODE_NOT_UNLOCKED);
+        }
     }
 }

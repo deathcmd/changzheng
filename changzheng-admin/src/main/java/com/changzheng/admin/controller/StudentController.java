@@ -9,9 +9,16 @@ import com.changzheng.common.entity.StudentInfo;
 import com.changzheng.common.result.R;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
+import java.nio.charset.StandardCharsets;
 
 /**
  * 学生管理控制器
@@ -26,7 +33,7 @@ public class StudentController {
 
     @Operation(summary = "获取学生列表")
     @GetMapping
-    public R<IPage<StudentInfo>> getStudentList(StudentQueryDTO query) {
+    public R<IPage<StudentInfo>> getStudentList(@Valid StudentQueryDTO query) {
         IPage<StudentInfo> page = studentService.getStudentList(query);
         return R.ok(page);
     }
@@ -48,6 +55,20 @@ public class StudentController {
         return R.ok("导入成功", result);
     }
 
+    @Operation(summary = "下载学生导入模板")
+    @GetMapping("/template")
+    public ResponseEntity<byte[]> downloadTemplate() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("学生信息导入模板.xlsx", StandardCharsets.UTF_8)
+                .build());
+        return ResponseEntity.ok()
+                .headers(headers)
+                .body(studentService.createImportTemplate());
+    }
+
     @Operation(summary = "更新学生信息")
     @PutMapping("/{id}")
     public R<Void> updateStudent(@PathVariable("id") Long id, @RequestBody StudentInfo student) {
@@ -55,11 +76,11 @@ public class StudentController {
         return R.ok("更新成功", null);
     }
 
-    @Operation(summary = "删除学生")
+    @Operation(summary = "停用学生")
     @DeleteMapping("/{id}")
     public R<Void> deleteStudent(@PathVariable("id") Long id) {
         studentService.deleteStudent(id);
-        return R.ok("删除成功", null);
+        return R.ok("停用成功", null);
     }
 
     @Operation(summary = "解绑学生（管理员特殊操作）")

@@ -20,4 +20,7 @@ public interface UserMapper extends BaseMapper<User> {
 
     @Select("SELECT COUNT(*) FROM t_user WHERE student_no = #{studentNo}")
     int countByStudentNo(@Param("studentNo") String studentNo);
+
+    @Select("SELECT * FROM t_user WHERE id = #{userId} FOR UPDATE")
+    User selectByIdForUpdate(@Param("userId") Long userId);
 }

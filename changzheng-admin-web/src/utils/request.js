@@ -27,6 +27,9 @@ request.interceptors.request.use(
 // 响应拦截器
 request.interceptors.response.use(
   response => {
+    if (response.config.responseType === 'blob') {
+      return response
+    }
     const res = response.data
     
     // 业务状态码判断

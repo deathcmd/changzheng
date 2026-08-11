@@ -7,10 +7,14 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.changzheng.common.exception.BusinessException;
 import com.changzheng.common.result.ResultCode;
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 
 /**
  * 微信小程序服务
@@ -28,11 +32,18 @@ public class WxMiniAppService {
     private static final String CODE2SESSION_URL = 
             "https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code";
 
+    @PostConstruct
+    void validateConfiguration() {
+        if (appId == null || appId.isBlank() || appSecret == null || appSecret.isBlank()) {
+            throw new IllegalStateException("WX_APPID and WX_SECRET must be configured");
+        }
+    }
+
     /**
      * code换取session
      */
     public WxSession code2Session(String code) {
-        String url = String.format(CODE2SESSION_URL, appId, appSecret, code);
+        String url = String.format(CODE2SESSION_URL, encode(appId), encode(appSecret), encode(code));
         
         try {
             String response = HttpUtil.get(url, 5000);
@@ -50,6 +61,10 @@ public class WxMiniAppService {
             session.setOpenid(json.getStr("openid"));
             session.setSessionKey(json.getStr("session_key"));
             session.setUnionid(json.getStr("unionid"));
+            if (session.getOpenid() == null || session.getOpenid().isBlank()
+                    || session.getSessionKey() == null || session.getSessionKey().isBlank()) {
+                throw new BusinessException(ResultCode.WX_API_ERROR, "微信接口返回缺少必要字段");
+            }
             
             return session;
         } catch (BusinessException e) {
@@ -58,6 +73,10 @@ public class WxMiniAppService {
             log.error("调用微信code2session接口异常", e);
             throw new BusinessException(ResultCode.WX_API_ERROR, "微信接口调用失败");
         }
+    }
+
+    private String encode(String value) {
+        return URLEncoder.encode(value, StandardCharsets.UTF_8);
     }
 
     /**

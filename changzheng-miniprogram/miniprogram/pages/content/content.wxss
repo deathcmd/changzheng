@@ -123,6 +123,8 @@
   font-size: 30rpx;
   color: #333333;
   line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* 图片列表 */

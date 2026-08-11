@@ -23,7 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.HashMap;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
 /**
@@ -84,6 +84,9 @@ public class AuthService {
             userMapper.insert(user);
             log.info("新用户注册: userId={}", user.getId());
         } else {
+            if (!Integer.valueOf(1).equals(user.getStatus())) {
+                throw new BusinessException(ResultCode.FORBIDDEN, "账号已被禁用");
+            }
             // 更新session_key
             user.setSessionKey(encryptSessionKey(sessionKey));
             userMapper.updateById(user);
@@ -92,11 +95,7 @@ public class AuthService {
         // 3. 生成JWT
         JwtUtils jwtUtils = new JwtUtils(jwtSecret, accessTokenExpire, refreshTokenExpire);
         
-        Map<String, Object> claims = new HashMap<>();
-        claims.put("openid", openid);
-        claims.put("nickname", user.getNickname());
-        
-        String accessToken = jwtUtils.generateAccessToken(user.getId(), "STUDENT", claims);
+        String accessToken = jwtUtils.generateAccessToken(user.getId(), "STUDENT", Map.of());
         String refreshToken = jwtUtils.generateRefreshToken(user.getId(), "STUDENT");
 
         // 4. 构建响应
@@ -136,8 +135,8 @@ public class AuthService {
      */
     @Transactional
     public BindStudentResponse bindStudent(Long userId, BindStudentRequest request) {
-        User user = userMapper.selectById(userId);
-        if (user == null) {
+        User user = userMapper.selectByIdForUpdate(userId);
+        if (user == null || !Integer.valueOf(1).equals(user.getStatus())) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
 
@@ -158,6 +157,12 @@ public class AuthService {
             throw new BusinessException(ResultCode.STUDENT_ALREADY_BOUND);
         }
 
+        // First claim the student row with a conditional update. A concurrent
+        // request can no longer bind the same student after this succeeds.
+        if (studentInfoMapper.updateBoundStatus(studentInfo.getId(), userId) != 1) {
+            throw new BusinessException(ResultCode.STUDENT_ALREADY_BOUND);
+        }
+
         // 更新用户信息（从学生底表获取专业、班级等）
         String encryptedStudentNo = encryptStudentNo(request.getStudentNo());
         user.setStudentNo(encryptedStudentNo);
@@ -167,15 +172,12 @@ public class AuthService {
         user.setClassName(studentInfo.getClassName());
         user.setGrade(studentInfo.getGrade());
         user.setCollege(studentInfo.getCollege() != null ? studentInfo.getCollege() : "智能制造与信息工程学院");
+        user.setMajor(studentInfo.getMajor());
         user.setEnrollYear(studentInfo.getEnrollYear());
 
         userMapper.updateById(user);
 
-        // 更新学生底表的绑定状态（认证后不可解除）
-        studentInfoMapper.updateBoundStatus(studentInfo.getId(), userId);
-
-        log.info("用户学生认证成功: userId={}, studentNo={}, className={}", 
-                userId, user.getStudentNoSuffix(), studentInfo.getClassName());
+        log.info("用户学生认证成功: userId={}", userId);
 
         // 返回认证信息
         BindStudentResponse response = new BindStudentResponse();
@@ -203,18 +205,17 @@ public class AuthService {
 
             Long userId = jwtUtils.getUserId(refreshToken);
             String userType = jwtUtils.getUserType(refreshToken);
+            if (!"STUDENT".equals(userType)) {
+                throw new BusinessException(ResultCode.TOKEN_INVALID);
+            }
 
             User user = userMapper.selectById(userId);
-            if (user == null) {
+            if (user == null || !Integer.valueOf(1).equals(user.getStatus())) {
                 throw new BusinessException(ResultCode.USER_NOT_FOUND);
             }
 
             // 生成新的access token
-            Map<String, Object> claims = new HashMap<>();
-            claims.put("openid", user.getOpenid());
-            claims.put("nickname", user.getNickname());
-
-            String newAccessToken = jwtUtils.generateAccessToken(userId, userType, claims);
+            String newAccessToken = jwtUtils.generateAccessToken(userId, userType, Map.of());
 
             LoginResponse response = new LoginResponse();
             response.setAccessToken(newAccessToken);
@@ -234,13 +235,15 @@ public class AuthService {
      */
     public User getUserInfo(Long userId) {
         User user = userMapper.selectById(userId);
-        if (user == null) {
+        if (user == null || !Integer.valueOf(1).equals(user.getStatus())) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
         // 清除敏感信息
         user.setSessionKey(null);
         user.setStudentNo(null);
         user.setName(null);
+        user.setOpenid(null);
+        user.setUnionid(null);
         return user;
     }
 
@@ -250,7 +253,7 @@ public class AuthService {
     @Transactional
     public void updateUserProfile(Long userId, UpdateUserProfileRequest request) {
         User user = userMapper.selectById(userId);
-        if (user == null) {
+        if (user == null || !Integer.valueOf(1).equals(user.getStatus())) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
 
@@ -275,16 +278,16 @@ public class AuthService {
 
     private String encryptSessionKey(String sessionKey) {
         if (StrUtil.isBlank(sessionKey)) return null;
-        return SecureUtil.aes(aesKey.getBytes()).encryptHex(sessionKey);
+        return SecureUtil.aes(aesKey.getBytes(StandardCharsets.UTF_8)).encryptHex(sessionKey);
     }
 
     private String encryptStudentNo(String studentNo) {
-        return SecureUtil.aes(aesKey.getBytes()).encryptHex(studentNo);
+        return SecureUtil.aes(aesKey.getBytes(StandardCharsets.UTF_8)).encryptHex(studentNo);
     }
 
     private String encryptName(String name) {
         if (StrUtil.isBlank(name)) return null;
-        return SecureUtil.aes(aesKey.getBytes()).encryptHex(name);
+        return SecureUtil.aes(aesKey.getBytes(StandardCharsets.UTF_8)).encryptHex(name);
     }
 
     private String getStudentNoSuffix(String studentNo) {
@@ -297,7 +300,7 @@ public class AuthService {
     private String decryptName(String encryptedName) {
         if (StrUtil.isBlank(encryptedName)) return "";
         try {
-            return SecureUtil.aes(aesKey.getBytes()).decryptStr(encryptedName);
+            return SecureUtil.aes(aesKey.getBytes(StandardCharsets.UTF_8)).decryptStr(encryptedName);
         } catch (Exception e) {
             log.warn("解密姓名失败");
             return "";
@@ -307,7 +310,7 @@ public class AuthService {
     private String decryptStudentNo(String encryptedStudentNo) {
         if (StrUtil.isBlank(encryptedStudentNo)) return "";
         try {
-            return SecureUtil.aes(aesKey.getBytes()).decryptStr(encryptedStudentNo);
+            return SecureUtil.aes(aesKey.getBytes(StandardCharsets.UTF_8)).decryptStr(encryptedStudentNo);
         } catch (Exception e) {
             log.warn("解密学号失败");
             return "";

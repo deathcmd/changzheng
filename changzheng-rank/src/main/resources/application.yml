@@ -55,12 +55,6 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
-# RocketMQ配置
-rocketmq:
-  name-server: ${ROCKETMQ_NAMESRV:127.0.0.1:9876}
-  consumer:
-    group: rank-consumer-group
-
 # Knife4j配置
 springdoc:
   swagger-ui:

@@ -2,9 +2,16 @@
 const config = require('../config/index')
 const mock = require('./mock')
 
-// 请求队列，用于处理token刷新
-let isRefreshing = false
-let requestQueue = []
+// All requests that expire together share one refresh operation.
+let refreshPromise = null
+let isShowingExpiredModal = false
+
+const buildApiUrl = (path) => {
+  if (typeof path !== 'string' || !path.startsWith('/') || path.startsWith('//')) {
+    throw new Error('API路径必须是以单个/开头的站内路径')
+  }
+  return `${config.baseUrl}${path}`
+}
 
 /**
  * 封装请求方法
@@ -12,14 +19,14 @@ let requestQueue = []
 const request = (options) => {
   return new Promise((resolve, reject) => {
     const app = getApp()
-    const { url, method = 'GET', data = {}, header = {}, noAuth = false } = options
+    const { url, method = 'GET', data = {}, header = {}, noAuth = false, retried = false } = options
 
     // Mock模式
     if (config.useMock) {
       setTimeout(() => {
         const mockRes = mock.getMockResponse(method, url)
         if (config.debug) {
-          console.log(`[Mock] ${method} ${url}`, mockRes)
+          console.log(`[Mock] ${method} ${url}`)
         }
         resolve(mockRes)
       }, 300) // 模拟网络延迟
@@ -37,19 +44,17 @@ const request = (options) => {
       requestHeader['Authorization'] = `Bearer ${app.globalData.token}`
     }
 
-    // 添加用户ID
-    if (app.globalData.userInfo && app.globalData.userInfo.userId) {
-      requestHeader['X-User-Id'] = String(app.globalData.userInfo.userId)
-      console.log('[Request] Adding X-User-Id:', app.globalData.userInfo.userId)
-    } else {
-      console.log('[Request] No userId found in userInfo:', app.globalData.userInfo)
+    // 完整URL
+    let fullUrl
+    try {
+      fullUrl = buildApiUrl(url)
+    } catch (error) {
+      reject(error)
+      return
     }
 
-    // 完整URL
-    const fullUrl = url.startsWith('http') ? url : `${config.baseUrl}${url}`
-
     if (config.debug) {
-      console.log(`[Request] ${method} ${fullUrl}`, data)
+      console.log(`[Request] ${method} ${url}`)
     }
 
     wx.request({
@@ -60,7 +65,7 @@ const request = (options) => {
       timeout: 30000,
       success: (res) => {
         if (config.debug) {
-          console.log(`[Response] ${method} ${url}`, res.data)
+          console.log(`[Response] ${method} ${url}: ${res.statusCode}`)
         }
 
         const statusCode = res.statusCode
@@ -72,9 +77,7 @@ const request = (options) => {
           if (responseData.code === 200) {
             resolve(responseData)
           } else if (responseData.code === 40100 || responseData.code === 40101) {
-            // Token过期或无效
-            handleTokenExpired()
-            reject(new Error('登录已过期，请重新登录'))
+            retryAfterRefresh(options, retried, resolve, reject)
           } else {
             // 业务错误
             wx.showToast({
@@ -85,9 +88,7 @@ const request = (options) => {
             reject(new Error(responseData.message || responseData.msg || '请求失败'))
           }
         } else if (statusCode === 401) {
-          // 未授权
-          handleTokenExpired()
-          reject(new Error('未授权'))
+          retryAfterRefresh(options, retried, resolve, reject)
         } else if (statusCode === 403) {
           wx.showToast({
             title: '没有权限访问',
@@ -126,8 +127,60 @@ const request = (options) => {
   })
 }
 
+const retryAfterRefresh = (options, retried, resolve, reject) => {
+  if (options.noAuth || retried) {
+    handleTokenExpired()
+    reject(new Error('登录已过期，请重新登录'))
+    return
+  }
+
+  refreshAccessToken()
+    .then(() => request({ ...options, retried: true }).then(resolve, reject))
+    .catch(error => {
+      handleTokenExpired()
+      reject(error)
+    })
+}
+
+const refreshAccessToken = () => {
+  if (refreshPromise) return refreshPromise
+
+  const app = getApp()
+  const refreshToken = app.globalData.refreshToken || wx.getStorageSync('refreshToken')
+  if (!refreshToken) return Promise.reject(new Error('缺少刷新令牌'))
+
+  refreshPromise = new Promise((resolve, reject) => {
+    wx.request({
+      url: buildApiUrl('/api/auth/refresh'),
+      method: 'POST',
+      data: { refreshToken },
+      header: { 'Content-Type': 'application/json' },
+      timeout: 30000,
+      success: res => {
+        const data = res.data || {}
+        if (res.statusCode >= 200 && res.statusCode < 300 && data.code === 200 && data.data?.accessToken) {
+          app.globalData.token = data.data.accessToken
+          wx.setStorageSync('token', data.data.accessToken)
+          resolve(data.data.accessToken)
+        } else {
+          reject(new Error('刷新令牌无效或已过期'))
+        }
+      },
+      fail: reject
+    })
+  })
+
+  refreshPromise.then(
+    () => { refreshPromise = null },
+    () => { refreshPromise = null }
+  )
+  return refreshPromise
+}
+
 // 处理Token过期
 const handleTokenExpired = () => {
+  if (isShowingExpiredModal) return
+  isShowingExpiredModal = true
   const app = getApp()
   app.logout()
   
@@ -137,6 +190,7 @@ const handleTokenExpired = () => {
     showCancel: false,
     confirmText: '确定',
     success: () => {
+      isShowingExpiredModal = false
       wx.reLaunch({
         url: '/pages/authorize/authorize'
       })
@@ -196,7 +250,13 @@ const del = (url, data = {}, options = {}) => {
 const upload = (url, filePath, name = 'file', formData = {}) => {
   return new Promise((resolve, reject) => {
     const app = getApp()
-    const fullUrl = url.startsWith('http') ? url : `${config.baseUrl}${url}`
+    let fullUrl
+    try {
+      fullUrl = buildApiUrl(url)
+    } catch (error) {
+      reject(error)
+      return
+    }
     
     const header = {}
     if (app.globalData.token) {

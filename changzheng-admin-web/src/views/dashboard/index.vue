@@ -74,8 +74,8 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 
-// Mock 开关（开发环境自动启用，生产环境自动禁用）
-const USE_MOCK = import.meta.env.DEV
+// Mock 数据只在显式启用时使用，避免开发环境误展示虚构业务数据。
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 // Mock 数据
 const mockDashboardData = {

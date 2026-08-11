@@ -2,13 +2,14 @@
 const config = require('./config/index')
 const api = require('./utils/api')
 const mock = require('./utils/mock')
+const { removeLocalAvatar } = require('./utils/avatar')
 
 App({
   globalData: {
     userInfo: null,
     token: null,
+    refreshToken: null,
     isLogin: false,
-    openId: null,
     // 系统配置
     stepToKmRate: 2000, // 默认2000步=1公里
     baseUrl: config.baseUrl,
@@ -19,7 +20,6 @@ App({
   },
 
   onLaunch() {
-    console.log('App onLaunch')
     // 检查登录态
     this.checkLoginStatus()
     // 获取系统配置
@@ -31,14 +31,13 @@ App({
   // 检查登录状态
   checkLoginStatus() {
     const token = wx.getStorageSync('token')
+    const refreshToken = wx.getStorageSync('refreshToken')
     const userInfo = wx.getStorageSync('userInfo')
     if (token && userInfo) {
       this.globalData.token = token
+      this.globalData.refreshToken = refreshToken || null
       this.globalData.userInfo = userInfo
       this.globalData.isLogin = true
-      console.log('已恢复登录状态')
-    } else {
-      console.log('未登录')
     }
   },
 
@@ -60,11 +59,6 @@ App({
   // 微信登录
   async wxLogin() {
     return new Promise((resolve, reject) => {
-      // 调试日志
-      console.log('[wxLogin] config.useMock =', config.useMock)
-      console.log('[wxLogin] config.baseUrl =', config.baseUrl)
-      console.log('[wxLogin] config.env =', config.env)
-
       // Mock模式直接返回模拟数据
       if (config.useMock) {
         // 添加延迟模拟网络请求
@@ -86,21 +80,17 @@ App({
               className: storedUserInfo.className,
               grade: storedUserInfo.grade,
               college: storedUserInfo.college
-            },
-            openId: storedUserInfo.openId || 'mock_openid_' + Date.now()
+            }
           }
           this.globalData.token = mockData.token
           this.globalData.userInfo = mockData.userInfo
-          this.globalData.openId = mockData.openId
           this.globalData.isLogin = true
           this.globalData.todaySteps = 8562
           this.globalData.totalMileage = 856
 
           wx.setStorageSync('token', mockData.token)
           wx.setStorageSync('userInfo', mockData.userInfo)
-          wx.setStorageSync('openId', mockData.openId)
 
-          console.log('[Mock] 登录成功')
           resolve(mockData)
         }, 500)
         return
@@ -130,14 +120,10 @@ App({
                   nickName: storedUserInfo.nickName || (userInfo && userInfo.nickname)
                 }
 
-                console.log('[wxLogin] userId:', userInfo && userInfo.userId)
-                console.log('[wxLogin] mergedUserInfo:', mergedUserInfo)
-
                 // 保存登录信息
                 this.globalData.token = token
                 this.globalData.refreshToken = refreshToken
                 this.globalData.userInfo = mergedUserInfo
-                this.globalData.openId = userInfo && userInfo.userId
                 this.globalData.isLogin = true
                 this.globalData.needBind = needBind
                 // 持久化
@@ -190,7 +176,6 @@ App({
   // 同步步数到服务器
   async syncSteps() {
     if (!this.globalData.isLogin) {
-      console.log('未登录，跳过步数同步')
       return null
     }
 
@@ -212,7 +197,6 @@ App({
       this.globalData.totalMileage = mockSyncResult.totalMileage
       this.globalData.todaySteps = mockSyncResult.todaySteps
 
-      console.log('[Mock] 同步步数成功', mockSyncResult)
       return mockSyncResult
     }
 
@@ -229,9 +213,9 @@ App({
         if (syncRes.data) {
           this.globalData.totalMileage = syncRes.data.totalMileage || 0
           this.globalData.todaySteps = syncRes.data.todaySteps || 0
-          if (syncRes.data.unlockedNodes && syncRes.data.unlockedNodes.length > 0) {
+          if (syncRes.data.newUnlockedNodes && syncRes.data.newUnlockedNodes.length > 0) {
             // 有新解锁的节点，弹出提示
-            this.showNodeUnlockNotify(syncRes.data.unlockedNodes)
+            this.showNodeUnlockNotify(syncRes.data.newUnlockedNodes)
           }
         }
         return syncRes.data
@@ -264,9 +248,10 @@ App({
 
   // 登出（完全清除本地信息，认证状态保存在服务器不受影响）
   logout() {
+    removeLocalAvatar(this.globalData.userInfo?.avatarUrl)
     this.globalData.token = null
+    this.globalData.refreshToken = null
     this.globalData.userInfo = null
-    this.globalData.openId = null
     this.globalData.isLogin = false
     this.globalData.totalMileage = 0
     this.globalData.todaySteps = 0
@@ -275,7 +260,6 @@ App({
     wx.removeStorageSync('token')
     wx.removeStorageSync('refreshToken')
     wx.removeStorageSync('userInfo')
-    wx.removeStorageSync('openId')
     wx.removeStorageSync('lastSyncTime')
   },
 
@@ -283,7 +267,6 @@ App({
   async autoSyncSteps() {
     // 等待登录状态确认
     if (!this.globalData.isLogin) {
-      console.log('未登录，跳过自动同步')
       return
     }
 
@@ -293,15 +276,12 @@ App({
     const syncInterval = 5 * 60 * 1000 // 5分钟同步一次
 
     if (now - lastSyncTime < syncInterval) {
-      console.log('同步间隔未到，跳过同步')
       return
     }
 
-    console.log('开始自动同步步数...')
     const result = await this.syncSteps()
     if (result) {
       wx.setStorageSync('lastSyncTime', now)
-      console.log('自动同步完成', result)
     }
   },
 

@@ -35,7 +35,7 @@ export function updateNode(id, data) {
   })
 }
 
-// 删除节点
+// 禁用节点
 export function deleteNode(id) {
   return request({
     url: `/admin/nodes/${id}`,
@@ -57,5 +57,13 @@ export function saveNodeContent(nodeId, data) {
     url: `/admin/nodes/${nodeId}/contents`,
     method: 'post',
     data
+  })
+}
+
+// 停用节点内容（后端采用软删除）
+export function deleteNodeContent(nodeId, contentId) {
+  return request({
+    url: `/admin/nodes/${nodeId}/contents/${contentId}`,
+    method: 'delete'
   })
 }

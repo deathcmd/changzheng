@@ -58,7 +58,7 @@
     <view class="profile-section">
       <view class="profile-header">
         <text class="profile-title">设置头像和昵称</text>
-        <text class="profile-desc">设置您的头像和昵称用于排行榜展示</text>
+        <text class="profile-desc">昵称用于排行榜；头像当前仅保存在本机</text>
       </view>
 
       <view class="profile-form">

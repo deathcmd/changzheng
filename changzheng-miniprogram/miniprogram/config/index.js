@@ -8,14 +8,14 @@ const ENV = {
     useMock: true  // 开发/测试环境使用 Mock 数据
   },
   prod: {
-    // 部署时修改为你的服务器域名
-    baseUrl: 'https://deathcmd.cn',
+    // 部署前必须修改；.invalid 是保留域名，不会产生真实外部请求。
+    baseUrl: 'https://changzheng-api.example.invalid',
     debug: false,
     useMock: false
   }
 }
 
-// 当前环境 - 部署时改为 'prod'
+// 安全默认值：真实请求且不使用 Mock；本地开发需要显式改为 'dev'。
 const currentEnv = 'prod'
 
 module.exports = {
@@ -47,8 +47,8 @@ module.exports = {
   // 缓存key
   storageKeys: {
     TOKEN: 'token',
+    REFRESH_TOKEN: 'refreshToken',
     USER_INFO: 'userInfo',
-    OPEN_ID: 'openId',
     LAST_SYNC_TIME: 'lastSyncTime'
   }
 }

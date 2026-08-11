@@ -5,6 +5,8 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.changzheng.common.entity.DailySteps;
 import com.changzheng.common.result.R;
+import com.changzheng.common.exception.BusinessException;
+import com.changzheng.common.result.ResultCode;
 import com.changzheng.sport.dto.ProgressVO;
 import com.changzheng.sport.dto.SyncRequest;
 import com.changzheng.sport.dto.SyncResult;
@@ -18,6 +20,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
@@ -57,8 +60,17 @@ public class SportController {
     public R<List<DailySteps>> getDailySteps(@RequestHeader("X-User-Id") Long userId,
                                               @RequestParam String startDate,
                                               @RequestParam String endDate) {
-        LocalDate start = LocalDate.parse(startDate);
-        LocalDate end = LocalDate.parse(endDate);
+        LocalDate start;
+        LocalDate end;
+        try {
+            start = LocalDate.parse(startDate);
+            end = LocalDate.parse(endDate);
+        } catch (DateTimeParseException exception) {
+            throw new BusinessException(ResultCode.PARAM_INVALID, "日期格式必须为YYYY-MM-DD");
+        }
+        if (start.isAfter(end) || end.isAfter(LocalDate.now()) || start.isBefore(end.minusDays(30))) {
+            throw new BusinessException(ResultCode.PARAM_INVALID, "日期范围必须为截至今天的连续31天以内");
+        }
         List<DailySteps> list = dailyStepsMapper.selectByUserIdAndDateRange(userId, start, end);
         return R.ok(list);
     }

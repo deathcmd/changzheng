@@ -56,22 +56,20 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
-# RocketMQ配置
-rocketmq:
-  name-server: ${ROCKETMQ_NAMESRV:127.0.0.1:9876}
-  producer:
-    group: sport-producer-group
-    enabled: ${ROCKETMQ_ENABLED:false}
-
 # 运动配置
 sport:
   step-to-km-rate: 2000      # 步数换算比例
   daily-step-limit: 30000    # 每日步数上限
   anomaly-threshold: 50000   # 异常步数阈值
+  total-distance: ${TOTAL_MARCH_DISTANCE:25000} # 路线总里程（公里）
+  max-sync-records: 31       # 单次最多处理的每日记录数
 
 # 安全配置
 security:
   aes-key: ${AES_KEY}
+
+wx:
+  appid: ${WX_APPID}
 
 jwt:
   secret: ${JWT_SECRET}

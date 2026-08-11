@@ -7,7 +7,7 @@
 [![CI](https://github.com/deathcmd/changzheng/actions/workflows/ci.yml/badge.svg)](https://github.com/deathcmd/changzheng/actions/workflows/ci.yml)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Java 17](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)
-![Spring Boot 3.2](https://img.shields.io/badge/Spring%20Boot-3.2-6DB33F?logo=springboot&logoColor=white)
+![Spring Boot 3.5](https://img.shields.io/badge/Spring%20Boot-3.5-6DB33F?logo=springboot&logoColor=white)
 ![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)
 ![WeChat Mini Program](https://img.shields.io/badge/WeChat-Mini%20Program-07C160?logo=wechat&logoColor=white)
 
@@ -28,7 +28,7 @@
 - **节点内容学习**：到达指定里程后解锁历史节点及其图文、音频和视频内容，并记录学习状态。
 - **排行榜**：提供个人总榜、同年级榜和当前用户排名。
 - **学生身份绑定**：通过微信登录并绑定学号等信息，为用户数据建立明确归属。
-- **运营管理后台**：支持管理员登录、学生数据导入与维护、文件上传和仪表盘统计。
+- **运营管理后台**：支持管理员登录、学生数据导入与维护、节点及学习内容 CRUD、文件上传和仪表盘统计。
 
 ## 系统架构
 
@@ -49,7 +49,6 @@ flowchart LR
     Content --> MySQL
     Rank --> MySQL
     Admin --> MySQL
-    Sport --> MQ["RocketMQ"]
     Gateway --> Redis[("Redis")]
     Gateway -. "服务发现" .-> Nacos["Nacos"]
     Auth -.-> Nacos
@@ -59,7 +58,7 @@ flowchart LR
     Admin -.-> Nacos
 ```
 
-外部请求统一通过 Nginx 与网关进入系统。网关完成路由和第一层身份校验，各业务服务再次验证令牌并执行角色授权；MySQL 保存业务数据，Redis、Nacos 和 RocketMQ 分别承担缓存、服务治理与异步消息能力。
+外部请求统一通过 Nginx 与网关进入系统。网关完成路由和第一层身份校验，各业务服务再次验证令牌、账号状态并执行角色授权；MySQL 保存权威业务数据，Redis 和 Nacos 分别承担限流缓存与服务发现。
 
 ## 技术栈
 
@@ -67,9 +66,9 @@ flowchart LR
 | --- | --- |
 | 小程序 | 原生微信小程序 |
 | 管理端 | Vue 3、Vite、Element Plus、ECharts |
-| 服务端 | Java 17、Spring Boot 3.2、Spring Cloud、MyBatis-Plus |
-| 基础设施 | MySQL 8、Redis 7、Nacos 2.3、RocketMQ 5.1 |
-| 部署与质量 | Docker Compose、Nginx、Maven、GitHub Actions、Dependabot |
+| 服务端 | Java 17、Spring Boot 3.5、Spring Cloud 2025.0、MyBatis-Plus |
+| 基础设施 | MySQL 8、Redis 7、Nacos 2.3 |
+| 部署与质量 | Docker Compose、Nginx、Maven Wrapper、GitHub Actions、CodeQL、Dependabot |
 
 ## 项目结构
 
@@ -91,18 +90,20 @@ flowchart LR
 ### 环境要求
 
 - JDK 17
-- Maven 3.8+
 - Node.js 20.19+ 或 22.12+
 - Docker 与 Docker Compose
 
 ### 验证源码
 
 ```bash
-mvn --batch-mode verify
-npm --prefix changzheng-admin-web ci
+./mvnw --batch-mode --no-transfer-progress clean verify
+npm --prefix changzheng-admin-web ci --ignore-scripts
 npm --prefix changzheng-admin-web run build
+npm --prefix changzheng-admin-web audit --audit-level=high
 docker compose --env-file .env.example config --quiet
 ```
+
+Windows 使用 `.\mvnw.cmd --batch-mode --no-transfer-progress clean verify`。Wrapper 固定并校验 Maven 3.9.11，首次运行会从 Maven Central 下载发行包。
 
 管理端开发服务器默认将 `/api` 代理到 `http://localhost:8080`。如需使用前端模拟登录，请显式设置 `VITE_USE_MOCK=true`；默认连接真实后端。
 
@@ -122,6 +123,7 @@ cp .env.example .env
 - `ADMIN_PASSWORD` 至少为 12 个字符；仅在没有启用中的管理员时用于创建初始管理员。
 - `CORS_ALLOWED_ORIGIN` 是管理端准确的 Origin，不使用通配符。
 - `FILE_UPLOAD_URL` 指向外部可访问的 `/uploads` 地址。
+- `TOTAL_MARCH_DISTANCE` 在运动进度与管理仪表盘中使用同一数值。
 
 然后执行：
 
@@ -129,7 +131,7 @@ cp .env.example .env
 ./deploy.sh
 ```
 
-部署脚本会验证配置、运行后端测试、构建管理端，再构建并启动 Compose 服务。默认仅向宿主机公开 Nginx 的 `80` 端口，MySQL、Redis、Nacos、RocketMQ 和内部微服务只在 Compose 网络内通信。生产环境应在可信的外部反向代理或负载均衡器终止 HTTPS。
+部署脚本会验证配置、运行后端测试、构建管理端，再构建并启动 Compose 服务。默认仅向宿主机公开 Nginx 的 `80` 端口，MySQL、Redis、Nacos 和内部微服务只在 Compose 网络内通信。生产环境应在可信的外部反向代理或负载均衡器终止 HTTPS。
 
 部署完成后的主要入口：
 
@@ -141,20 +143,22 @@ cp .env.example .env
 
 ## 数据库迁移
 
-全新的 MySQL 数据卷会按文件名顺序执行 `sql/` 中的初始化脚本。已有部署应先备份数据库，再由维护人员审核并手动执行尚未应用的迁移。`V3__security_hardening.sql` 会修正微信用户绑定前的可空字段，并禁用仍使用历史公开密码哈希的默认管理员。
+全新的 MySQL 数据卷会按文件名顺序执行 `sql/` 中的初始化脚本。已有部署应先备份数据库，再由维护人员审核并按版本顺序手动执行尚未应用的迁移。V3 修正绑定前字段并禁用历史默认管理员；V4 拆分学院与专业、将里程流水改为追加式审计记录、补齐节点内容字段和学习记录表，并把历史文章标记转换为纯文本。
 
 ## 当前实现边界
 
-管理端已经包含节点与内容维护界面，但其引用的 `/admin/nodes/**` 服务端 CRUD 接口尚未实现；学生模板下载，以及小程序中的里程流水、成就、系统配置和轮播图接口也属于预留能力。小程序用户信息接口路径目前还需要与服务端统一。部署或贡献前请查看 [使用手册中的完整清单](使用文档.md#4-当前实现边界)。
+节点与内容管理、学生模板本地生成、公开系统配置和用户信息接口已经接通。当前轮播图接口返回空列表；成就卡片由小程序基于进度本地计算，尚无独立的服务端成就 API；当前也没有班级汇总排行榜。完整边界见 [使用手册](使用文档.md#4-当前实现边界)，后续计划见 [路线图](ROADMAP.md)。
 
 ## 安全设计
 
-- 网关和各 Servlet 微服务独立验证 JWT，防止绕过网关后伪造身份。
+- 网关和各 Servlet 微服务独立验证 JWT；受保护接口还会核验账号启用状态，使停用操作立即撤销旧访问令牌。
 - 内部用户与管理员身份头由已验证的 claims 重建，不信任客户端传入值。
 - 学生、管理员和 refresh token 使用不同角色与用途约束。
+- 管理员登录失败计数在 Redis 中原子更新，15 分钟内最多尝试 10 次。
+- 节点学习内容在列表、详情和学习记录入口均校验用户已解锁对应节点；文章以纯文本渲染。
 - 上传文件同时校验扩展名和文件签名；删除操作限制在上传根目录内，并阻止路径穿越。
 - 部署要求显式提供密钥和密码，Java 容器以非 root 用户运行，内部服务默认不暴露到宿主机。
-- CI 持续验证 Maven 多模块构建、管理端生产构建和 Compose 配置。
+- 管理端使用锁文件安装依赖并禁用依赖生命周期脚本；CI 验证后端、管理端依赖审计与构建、小程序 JavaScript 和 Compose 配置。CodeQL 分析 Java 与 JavaScript，Gitleaks 扫描 Git 历史凭证，Dependabot 监控 Maven、npm、Actions 和容器镜像。
 
 请勿提交 `.env`、微信凭证、JWT、私钥、数据库导出、学生数据、上传内容、`node_modules` 或 `dist`。发现漏洞时不要创建公开 Issue，请按照 [安全策略](SECURITY.md) 私下报告。
 
@@ -168,6 +172,7 @@ cp .env.example .env
 - [使用文档](使用文档.md)
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
+- [路线图](ROADMAP.md)
 
 ## 开源许可证
 

@@ -34,7 +34,8 @@
 
   <!-- 提示信息 -->
   <view class="tips">
-    <text class="tip-text">• 头像和昵称将展示在排行榜中</text>
+    <text class="tip-text">• 昵称会展示在排行榜中</text>
+    <text class="tip-text">• 头像当前仅保存在本机，不会上传服务器</text>
     <text class="tip-text">• 请勿使用违规内容作为头像或昵称</text>
   </view>
 

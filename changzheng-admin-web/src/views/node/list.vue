@@ -27,7 +27,7 @@
           <template #default="{ row }">
             <el-button size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button size="small" type="primary" @click="goContent(row)">内容</el-button>
-            <el-button size="small" type="danger" @click="handleDelete(row)">删除</el-button>
+            <el-button size="small" type="danger" @click="handleDelete(row)">禁用</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -78,9 +78,10 @@
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { getNodeList, createNode, updateNode, deleteNode } from '@/api/node'
 
-// Mock 数据
-const USE_MOCK = true
+// Mock 数据只能由显式环境变量启用，生产构建始终使用真实接口。
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 const mockNodeList = [
   { id: 1, nodeCode: 'RUIJIN', nodeName: '瑞金', mileageThreshold: 0, sortOrder: 1, description: '长征出发地', status: 1, longitude: 116.0279, latitude: 25.8847 },
   { id: 2, nodeCode: 'YUDU', nodeName: '于都', mileageThreshold: 60, sortOrder: 2, description: '红军集结出发地', status: 1, longitude: 115.4153, latitude: 25.9522 },
@@ -134,9 +135,8 @@ async function fetchList() {
       nodeList.value = mockNodeList
       return
     }
-    const { getNodeList } = await import('@/api/node')
     const res = await getNodeList()
-    nodeList.value = res.data.list || res.data
+    nodeList.value = res.data?.list || res.data || []
   } finally {
     loading.value = false
   }
@@ -160,17 +160,16 @@ function goContent(row) {
 
 async function handleDelete(row) {
   try {
-    await ElMessageBox.confirm(`确认删除节点“${row.nodeName}”?`, '提示', {
+    await ElMessageBox.confirm(`确认禁用节点“${row.nodeName}”?`, '提示', {
       type: 'warning'
     })
     if (USE_MOCK) {
       nodeList.value = nodeList.value.filter(n => n.id !== row.id)
-      ElMessage.success('删除成功')
+      ElMessage.success('禁用成功')
       return
     }
-    const { deleteNode } = await import('@/api/node')
     await deleteNode(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success('禁用成功')
     fetchList()
   } catch (error) {
     if (error !== 'cancel') {
@@ -197,7 +196,6 @@ async function handleSubmit() {
       return
     }
 
-    const { createNode, updateNode } = await import('@/api/node')
     if (isEdit.value) {
       await updateNode(form.id, form)
       ElMessage.success('更新成功')

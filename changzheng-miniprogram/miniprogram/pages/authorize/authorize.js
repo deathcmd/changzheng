@@ -1,6 +1,7 @@
 // pages/authorize/authorize.js
 const app = getApp()
 const config = require('../../config/index')
+const { isHttpsUrl, persistAvatarUrl } = require('../../utils/avatar')
 
 // 使用配置文件中的Mock开关
 const USE_MOCK = config.useMock
@@ -111,10 +112,18 @@ Page({
     
     // 更新全局数据
     if (tempAvatarUrl || tempNickName) {
+      const currentUserInfo = app.globalData.userInfo || {}
+      let savedAvatarUrl
+      try {
+        savedAvatarUrl = await persistAvatarUrl(tempAvatarUrl, currentUserInfo.avatarUrl || '')
+      } catch (e) {
+        wx.showToast({ title: e.message || '头像保存失败', icon: 'none' })
+        return
+      }
       app.globalData.userInfo = {
-        ...app.globalData.userInfo,
-        avatarUrl: tempAvatarUrl || app.globalData.userInfo.avatarUrl,
-        nickName: tempNickName || app.globalData.userInfo.nickName
+        ...currentUserInfo,
+        avatarUrl: savedAvatarUrl,
+        nickName: tempNickName || currentUserInfo.nickName
       }
       // 持久化保存
       wx.setStorageSync('userInfo', app.globalData.userInfo)
@@ -123,11 +132,11 @@ Page({
       if (!config.useMock && app.globalData.isLogin) {
         try {
           const api = require('../../utils/api')
-          await api.updateUserProfile({
-            nickName: tempNickName,
-            avatarUrl: tempAvatarUrl
-          })
-          console.log('头像昵称已同步到后端')
+          const profile = { nickName: tempNickName }
+          if (isHttpsUrl(savedAvatarUrl)) {
+            profile.avatarUrl = savedAvatarUrl
+          }
+          await api.updateUserProfile(profile)
         } catch (e) {
           console.error('同步头像昵称到后端失败', e)
           // 即使同步失败也继续流程
@@ -188,7 +197,7 @@ Page({
         }
         
         // 检查学号是否已被其他账号绑定
-        const currentUserId = app.globalData.userInfo?.id || app.globalData.userInfo?.openId
+        const currentUserId = app.globalData.userInfo?.userId || app.globalData.userInfo?.id || app.globalData.userInfo?.openId
         if (boundStudentNos.includes(studentNo)) {
           // 检查是否是当前用户绑定的
           const existingBind = wx.getStorageSync('studentBindMap') || {}
@@ -243,17 +252,18 @@ Page({
         studentNo,
         name: studentName
       })
+      const student = result.data || {}
       
       // 更新全局数据
       app.globalData.userInfo = {
         ...app.globalData.userInfo,
-        studentNo: result.studentNo || studentNo,
-        studentId: result.studentId,
-        name: result.name || studentName,
-        major: result.major,
-        className: result.className,
-        grade: result.grade,
-        college: result.college || '智能制造与信息工程学院'
+        studentNo: student.studentNo || studentNo,
+        studentId: student.studentId,
+        name: student.name || studentName,
+        major: student.major,
+        className: student.className,
+        grade: student.grade,
+        college: student.college || '智能制造与信息工程学院'
       }
       
       // 持久化保存

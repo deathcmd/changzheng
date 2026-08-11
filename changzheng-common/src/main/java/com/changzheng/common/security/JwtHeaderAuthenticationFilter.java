@@ -11,6 +11,7 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpHeaders;
@@ -46,12 +47,20 @@ public class JwtHeaderAuthenticationFilter extends OncePerRequestFilter {
     private static final String ADMIN_ID_HEADER = "X-Admin-Id";
 
     private final SecretKey secretKey;
+    private final IdentityStatusVerifier identityStatusVerifier;
 
-    public JwtHeaderAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret) {
+    @Autowired
+    public JwtHeaderAuthenticationFilter(@Value("${jwt.secret}") String jwtSecret,
+                                         IdentityStatusVerifier identityStatusVerifier) {
         if (jwtSecret == null || jwtSecret.getBytes(StandardCharsets.UTF_8).length < 32) {
             throw new IllegalArgumentException("JWT_SECRET must contain at least 32 bytes");
         }
         this.secretKey = Keys.hmacShaKeyFor(jwtSecret.getBytes(StandardCharsets.UTF_8));
+        this.identityStatusVerifier = identityStatusVerifier;
+    }
+
+    JwtHeaderAuthenticationFilter(String jwtSecret) {
+        this(jwtSecret, null);
     }
 
     @Override
@@ -98,10 +107,15 @@ public class JwtHeaderAuthenticationFilter extends OncePerRequestFilter {
                 writeError(response, HttpServletResponse.SC_UNAUTHORIZED, "Invalid token identity");
                 return;
             }
+            long identityId = Long.parseLong(subject);
             if (requiredIdentity == RequiredIdentity.ADMIN) {
                 String role = claims.get("role", String.class);
                 if (!"ADMIN".equals(userType) || !("ADMIN".equals(role) || "SUPER_ADMIN".equals(role))) {
                     writeError(response, HttpServletResponse.SC_FORBIDDEN, "Administrator access required");
+                    return;
+                }
+                if (identityStatusVerifier != null && !identityStatusVerifier.isActiveAdmin(identityId)) {
+                    writeError(response, HttpServletResponse.SC_FORBIDDEN, "Administrator account disabled");
                     return;
                 }
                 sanitizedRequest.setHeader(ADMIN_ID_HEADER, subject);
@@ -111,6 +125,10 @@ public class JwtHeaderAuthenticationFilter extends OncePerRequestFilter {
                 writeError(response, HttpServletResponse.SC_FORBIDDEN, "Student access required");
                 return;
             } else {
+                if (identityStatusVerifier != null && !identityStatusVerifier.isActiveStudent(identityId)) {
+                    writeError(response, HttpServletResponse.SC_FORBIDDEN, "Student account disabled");
+                    return;
+                }
                 sanitizedRequest.setHeader(USER_ID_HEADER, subject);
                 SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(
                         subject, null, List.of(new SimpleGrantedAuthority("ROLE_STUDENT"))));
@@ -136,8 +154,7 @@ public class JwtHeaderAuthenticationFilter extends OncePerRequestFilter {
         }
         if (requestUri.startsWith("/api/sport/")
                 || requestUri.startsWith("/api/rank/")
-                || requestUri.equals("/content/learned")
-                || requestUri.startsWith("/content/learned/")) {
+                || requestUri.startsWith("/content/")) {
             return RequiredIdentity.STUDENT;
         }
         if (requestUri.startsWith("/api/auth/")

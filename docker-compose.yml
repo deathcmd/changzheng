@@ -42,33 +42,6 @@ services:
     networks:
       - changzheng-net
 
-  # RocketMQ NameServer
-  rocketmq-namesrv:
-    image: apache/rocketmq:5.1.3
-    container_name: changzheng-rocketmq-namesrv
-    restart: always
-    command: sh mqnamesrv
-    volumes:
-      - rocketmq_namesrv_logs:/home/rocketmq/logs
-    networks:
-      - changzheng-net
-
-  # RocketMQ Broker
-  rocketmq-broker:
-    image: apache/rocketmq:5.1.3
-    container_name: changzheng-rocketmq-broker
-    restart: always
-    environment:
-      NAMESRV_ADDR: rocketmq-namesrv:9876
-    command: sh mqbroker -n rocketmq-namesrv:9876 -c /home/rocketmq/conf/broker.conf
-    volumes:
-      - rocketmq_broker_logs:/home/rocketmq/logs
-      - rocketmq_broker_store:/home/rocketmq/store
-    depends_on:
-      - rocketmq-namesrv
-    networks:
-      - changzheng-net
-
   # API网关
   gateway:
     build:
@@ -132,13 +105,12 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       AES_KEY: ${AES_KEY:?AES_KEY is required}
-      ROCKETMQ_NAMESRV: rocketmq-namesrv:9876
-      ROCKETMQ_ENABLED: "true"
+      WX_APPID: ${WX_APPID:?WX_APPID is required}
+      TOTAL_MARCH_DISTANCE: ${TOTAL_MARCH_DISTANCE:-25000}
     depends_on:
       - nacos
       - mysql
       - redis
-      - rocketmq-broker
     networks:
       - changzheng-net
 
@@ -187,12 +159,10 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       AES_KEY: ${AES_KEY:?AES_KEY is required}
-      ROCKETMQ_NAMESRV: rocketmq-namesrv:9876
     depends_on:
       - nacos
       - mysql
       - redis
-      - rocketmq-broker
     networks:
       - changzheng-net
 
@@ -215,6 +185,7 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:?ADMIN_USERNAME is required}
       ADMIN_PASSWORD: ${ADMIN_PASSWORD:?ADMIN_PASSWORD is required}
       CORS_ALLOWED_ORIGIN: ${CORS_ALLOWED_ORIGIN:?CORS_ALLOWED_ORIGIN is required}
+      TOTAL_MARCH_DISTANCE: ${TOTAL_MARCH_DISTANCE:-25000}
     depends_on:
       - nacos
       - mysql
@@ -243,9 +214,6 @@ volumes:
   mysql_data:
   redis_data:
   nacos_data:
-  rocketmq_namesrv_logs:
-  rocketmq_broker_logs:
-  rocketmq_broker_store:
   nginx_logs:
   uploads_data:
 

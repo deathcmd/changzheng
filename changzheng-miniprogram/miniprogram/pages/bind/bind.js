@@ -119,7 +119,7 @@ Page({
         }
         
         // 检查学号是否已被其他账号绑定
-        const currentUserId = app.globalData.userInfo?.id || app.globalData.userInfo?.openId
+        const currentUserId = app.globalData.userInfo?.userId || app.globalData.userInfo?.id || app.globalData.userInfo?.openId
         if (boundStudentNos.includes(studentNo)) {
           // 检查是否是当前用户绑定的
           const existingBind = wx.getStorageSync('studentBindMap') || {}

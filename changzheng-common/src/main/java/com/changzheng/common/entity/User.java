@@ -76,6 +76,11 @@ public class User extends BaseEntity {
     private String college;
 
     /**
+     * 专业
+     */
+    private String major;
+
+    /**
      * 入学年份
      */
     private Integer enrollYear;

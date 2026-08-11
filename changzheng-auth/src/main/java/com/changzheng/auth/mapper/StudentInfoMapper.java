@@ -28,6 +28,7 @@ public interface StudentInfoMapper extends BaseMapper<StudentInfo> {
     /**
      * 更新绑定状态
      */
-    @Update("UPDATE t_student_info SET is_bound = 1, bound_user_id = #{userId}, bound_at = NOW() WHERE id = #{id}")
+    @Update("UPDATE t_student_info SET is_bound = 1, bound_user_id = #{userId}, bound_at = NOW() " +
+            "WHERE id = #{id} AND status = 1 AND is_bound = 0")
     int updateBoundStatus(@Param("id") Long id, @Param("userId") Long userId);
 }

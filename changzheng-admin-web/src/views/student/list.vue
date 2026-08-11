@@ -90,7 +90,7 @@
           <template #default="{ row }">
             <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
             <el-button link type="warning" size="small" v-if="row.isBound" @click="handleUnbind(row)">解绑</el-button>
-            <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+            <el-button link type="danger" size="small" @click="handleDelete(row)">停用</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -148,7 +148,7 @@
             <template #default="{ row }">
               <el-button link type="primary" size="small" @click="handleEdit(row)">编辑</el-button>
               <el-button link type="warning" size="small" v-if="row.isBound" @click="handleUnbind(row)">解绑</el-button>
-              <el-button link type="danger" size="small" @click="handleDelete(row)">删除</el-button>
+              <el-button link type="danger" size="small" @click="handleDelete(row)">停用</el-button>
             </template>
           </el-table-column>
         </el-table>
@@ -196,12 +196,19 @@
 
     <!-- 编辑对话框 -->
     <el-dialog v-model="editDialogVisible" title="编辑学生信息" width="500px">
+      <el-alert
+        v-if="editForm.isBound"
+        title="已绑定学生的身份字段需先解绑才能修改；性别和手机号仍可维护。"
+        type="warning"
+        :closable="false"
+        style="margin-bottom: 16px"
+      />
       <el-form :model="editForm" label-width="80px">
         <el-form-item label="学号">
           <el-input v-model="editForm.studentNo" disabled />
         </el-form-item>
         <el-form-item label="姓名">
-          <el-input v-model="editForm.name" />
+          <el-input v-model="editForm.name" :disabled="Boolean(editForm.isBound)" />
         </el-form-item>
         <el-form-item label="性别">
           <el-radio-group v-model="editForm.gender">
@@ -210,13 +217,13 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item label="专业">
-          <el-input v-model="editForm.major" />
+          <el-input v-model="editForm.major" :disabled="Boolean(editForm.isBound)" />
         </el-form-item>
         <el-form-item label="班级">
-          <el-input v-model="editForm.className" />
+          <el-input v-model="editForm.className" :disabled="Boolean(editForm.isBound)" />
         </el-form-item>
         <el-form-item label="年级">
-          <el-input v-model="editForm.grade" />
+          <el-input v-model="editForm.grade" :disabled="Boolean(editForm.isBound)" />
         </el-form-item>
         <el-form-item label="手机号">
           <el-input v-model="editForm.phone" />
@@ -236,8 +243,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Upload, Download, UploadFilled } from '@element-plus/icons-vue'
 import * as studentApi from '@/api/student'
 
-// Mock 开关（开发环境自动启用，生产环境自动禁用）
-const USE_MOCK = import.meta.env.DEV
+// Mock 数据只在显式启用时使用，避免开发环境误展示虚构业务数据。
+const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true'
 
 // 视图模式
 const viewMode = ref('list')
@@ -290,7 +297,8 @@ const editForm = reactive({
   major: '',
   className: '',
   grade: '',
-  phone: ''
+  phone: '',
+  isBound: 0
 })
 
 // 班级分组数据
@@ -465,19 +473,20 @@ const handleFileChange = (file) => {
 }
 
 // 下载模板
-const downloadTemplate = () => {
-  // 创建模板数据
-  const templateData = '学号,姓名,性别,专业,班级,年级,手机号\n20230001,张三,男,软件技术,软件2301,2023级,13800000001\n20230002,李四,女,计算机应用技术,计应2301,2023级,13800000002'
-  
-  const blob = new Blob(['\ufeff' + templateData], { type: 'text/csv;charset=utf-8' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = '学生信息导入模板.csv'
-  a.click()
-  URL.revokeObjectURL(url)
-  
-  ElMessage.success('模板下载成功，请使用Excel打开编辑')
+const downloadTemplate = async () => {
+  try {
+    const response = await studentApi.downloadTemplate()
+    const url = URL.createObjectURL(response.data)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = '学生信息导入模板.xlsx'
+    a.click()
+    URL.revokeObjectURL(url)
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    console.error('下载模板失败', error)
+    ElMessage.error('模板下载失败')
+  }
 }
 
 // 导入
@@ -562,22 +571,22 @@ const handleUnbind = async (row) => {
   }
 }
 
-// 删除
+// 停用
 const handleDelete = async (row) => {
-  await ElMessageBox.confirm(`确定要删除学生 ${row.name} 吗？`, '删除确认', {
+  await ElMessageBox.confirm(`确定要停用学生 ${row.name} 吗？记录会保留用于审计。`, '停用确认', {
     type: 'error'
   })
   
   if (USE_MOCK) {
     await new Promise(resolve => setTimeout(resolve, 300))
-    ElMessage.success('删除成功')
+    ElMessage.success('停用成功')
     loadData()
     return
   }
   
   try {
     await studentApi.deleteStudent(row.id)
-    ElMessage.success('删除成功')
+    ElMessage.success('停用成功')
     loadData()
   } catch (error) {
     console.error('删除失败', error)

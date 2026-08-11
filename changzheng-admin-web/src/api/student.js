@@ -40,7 +40,7 @@ export function updateStudent(id, data) {
   })
 }
 
-// 删除学生
+// 停用学生（服务端软删除）
 export function deleteStudent(id) {
   return request({
     url: `/admin/students/${id}`,

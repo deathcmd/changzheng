@@ -11,7 +11,7 @@
     <view class="video-section" wx:if="{{contentInfo.contentType === 'video'}}">
       <video 
         class="content-video"
-        src="{{contentInfo.videoUrl}}"
+        src="{{contentInfo.mediaUrl}}"
         poster="{{contentInfo.coverUrl}}"
         controls
         show-center-play-btn
@@ -49,9 +49,9 @@
         </view>
       </view>
 
-      <!-- 富文本内容 -->
+      <!-- 内容按纯文本渲染，避免后台内容被当作可执行标记解析 -->
       <view class="article-content">
-        <rich-text nodes="{{contentInfo.content}}"></rich-text>
+        <text selectable>{{contentInfo.content}}</text>
       </view>
 
       <!-- 图片列表 -->

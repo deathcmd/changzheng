@@ -19,4 +19,5 @@ public interface MileageLedgerMapper extends BaseMapper<MileageLedger> {
 
     @Select("SELECT * FROM t_mileage_ledger WHERE user_id = #{userId} AND status = 1 ORDER BY record_date DESC LIMIT 1")
     MileageLedger selectLatestByUserId(@Param("userId") Long userId);
+
 }

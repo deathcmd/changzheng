@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose a scoped improvement with a concrete user need.
+title: "[Feature]: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: User problem
+      description: Who is affected and what cannot be done today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe observable behavior, not only an implementation choice.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives and scope
+  - type: checkboxes
+    id: security
+    attributes:
+      label: Security and privacy
+      options:
+        - label: I considered effects on student data, authentication, files, external requests, and deployment secrets.
+          required: true

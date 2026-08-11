@@ -6,11 +6,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.changzheng.common.entity.*;
 import com.changzheng.common.exception.BusinessException;
 import com.changzheng.common.result.ResultCode;
-import com.changzheng.common.util.RedisUtils;
 import com.changzheng.sport.dto.ProgressVO;
 import com.changzheng.sport.dto.SyncResult;
 import com.changzheng.sport.mapper.*;
-import com.changzheng.sport.mq.StepEventProducer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -20,12 +18,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * 步数同步服务 - 核心业务逻辑
@@ -40,8 +39,6 @@ public class StepSyncService {
     private final UserNodeProgressMapper userNodeProgressMapper;
     private final RouteNodeMapper routeNodeMapper;
     private final UserMapper userMapper;
-    private final RedisUtils redisUtils;
-    private final StepEventProducer stepEventProducer;
 
     @Value("${sport.step-to-km-rate:2000}")
     private Integer stepToKmRate;
@@ -51,6 +48,12 @@ public class StepSyncService {
 
     @Value("${sport.anomaly-threshold:50000}")
     private Integer anomalyThreshold;
+
+    @Value("${sport.total-distance:25000}")
+    private BigDecimal totalDistance;
+
+    @Value("${sport.max-sync-records:31}")
+    private Integer maxSyncRecords;
 
     /**
      * 同步微信运动步数
@@ -63,19 +66,25 @@ public class StepSyncService {
         result.setNewUnlockedNodes(new ArrayList<>());
         result.setNewAchievements(new ArrayList<>());
 
-        try {
-            if (stepInfoList == null || stepInfoList.isEmpty()) {
-                log.warn("步数同步数据为空: userId={}", userId);
-                return fillTodayStats(userId, result);
-            }
+        if (userId == null) {
+            throw new BusinessException(ResultCode.UNAUTHORIZED);
+        }
+        validateConfiguration();
 
-            User user = userMapper.selectById(userId);
-            if (user == null) {
-                log.error("用户不存在: userId={}", userId);
-                throw new BusinessException(ResultCode.USER_NOT_FOUND);
-            }
+        // Serialise synchronisations for the same user so that cumulative
+        // mileage and the per-day ledger cannot diverge under concurrent calls.
+        User user = userMapper.selectByIdForUpdate(userId);
+        if (user == null || !Integer.valueOf(1).equals(user.getStatus())) {
+            throw new BusinessException(ResultCode.USER_NOT_FOUND);
+        }
+        if (stepInfoList == null || stepInfoList.isEmpty()) {
+            return fillTodayStats(userId, result);
+        }
+        if (stepInfoList.size() > maxSyncRecords) {
+            throw new BusinessException(ResultCode.PARAM_INVALID, "步数记录数量超过限制");
+        }
 
-        BigDecimal currentMileage = user.getTotalMileage();
+        BigDecimal currentMileage = user.getTotalMileage() == null ? BigDecimal.ZERO : user.getTotalMileage();
         int syncCount = 0;
 
         // 获取用户注册日期，只同步注册之后的数据
@@ -83,16 +92,9 @@ public class StepSyncService {
             ? user.getCreatedAt().toLocalDate() 
             : LocalDate.now();
 
-        // 遍历微信返回的步数数据(最近30天)
-        for (int i = 0; i < stepInfoList.size(); i++) {
-            JSONObject stepInfo = stepInfoList.getJSONObject(i);
-            long timestamp = stepInfo.getLong("timestamp");
-            int steps = stepInfo.getInt("step");
-
-            LocalDate recordDate = Instant.ofEpochSecond(timestamp)
-                    .atZone(ZoneId.of("Asia/Shanghai"))
-                    .toLocalDate();
-
+        // 按时间顺序处理，确保追加式流水的 before/after 具有可审计的时间顺序。
+        for (StepRecord stepRecord : validateAndSortStepRecords(stepInfoList)) {
+            LocalDate recordDate = stepRecord.recordDate();
             // 跳过注册日期之前的数据
             if (recordDate.isBefore(registerDate)) {
                 log.debug("跳过注册前的步数数据: userId={}, date={}, registerDate={}", 
@@ -100,28 +102,15 @@ public class StepSyncService {
                 continue;
             }
 
-            // 幂等检查
-            String idempotentKey = String.format("idempotent:step:%d:%s", userId, recordDate);
-            if (!redisUtils.checkAndSetIdempotent(idempotentKey, 48, TimeUnit.HOURS)) {
-                // 已处理过,检查是否需要更新(步数增加)
-                DailySteps existing = dailyStepsMapper.selectByUserIdAndDate(userId, recordDate);
-                if (existing != null && existing.getRawSteps() >= steps) {
-                    continue; // 步数没有增加,跳过
-                }
-            }
-
             // 处理当日步数
-            BigDecimal mileageDelta = processDailySteps(userId, recordDate, steps, currentMileage);
+            BigDecimal mileageDelta = processDailySteps(userId, recordDate, stepRecord.steps(), currentMileage);
             if (mileageDelta == null) mileageDelta = BigDecimal.ZERO;
             
             currentMileage = currentMileage.add(mileageDelta);
-            syncCount++;
-
-            // 今日数据特殊处理
-            if (recordDate.equals(LocalDate.now())) {
-                result.setTodaySteps(steps);
-                result.setTodayMileage(mileageDelta);
+            if (mileageDelta.signum() > 0) {
+                syncCount++;
             }
+
         }
 
         // 更新用户累计里程和累计步数
@@ -137,22 +126,59 @@ public class StepSyncService {
         List<SyncResult.NodeInfo> newNodes = checkAndUnlockNodes(userId, currentMileage);
         result.setNewUnlockedNodes(newNodes);
 
-        // 发送MQ事件
-        if (syncCount > 0) {
-            stepEventProducer.sendStepRecordedEvent(userId, LocalDate.now(), 
-                    result.getTodaySteps() != null ? result.getTodaySteps() : 0, 
-                    result.getTodayMileage() != null ? result.getTodayMileage() : BigDecimal.ZERO);
-        }
-
         result.setSyncCount(syncCount);
         result.setTotalMileage(currentMileage);
-        
-        return fillTodayStats(userId, result);
+        fillTodayStats(userId, result);
 
-        } catch (Exception e) {
-            log.error("同步步数过程发生非预期异常: userId={}", userId, e);
-            // 尝试返回今日统计，即使同步失败
-            return fillTodayStats(userId, result);
+        return result;
+    }
+
+    private List<StepRecord> validateAndSortStepRecords(JSONArray stepInfoList) {
+        List<StepRecord> records = new ArrayList<>(stepInfoList.size());
+        LocalDate today = LocalDate.now();
+        for (int i = 0; i < stepInfoList.size(); i++) {
+            JSONObject stepInfo;
+            Long timestamp;
+            Integer steps;
+            try {
+                stepInfo = stepInfoList.getJSONObject(i);
+                timestamp = stepInfo == null ? null : stepInfo.getLong("timestamp");
+                steps = stepInfo == null ? null : stepInfo.getInt("step");
+            } catch (RuntimeException exception) {
+                throw new BusinessException(ResultCode.PARAM_INVALID, "步数记录格式不正确");
+            }
+            if (stepInfo == null) {
+                throw new BusinessException(ResultCode.PARAM_INVALID, "步数记录格式不正确");
+            }
+            if (timestamp == null || timestamp <= 0 || steps == null || steps < 0) {
+                throw new BusinessException(ResultCode.PARAM_INVALID, "步数记录包含无效时间或步数");
+            }
+            try {
+                LocalDate recordDate = Instant.ofEpochSecond(timestamp)
+                        .atZone(ZoneId.of("Asia/Shanghai"))
+                        .toLocalDate();
+                if (recordDate.isAfter(today)) {
+                    throw new BusinessException(ResultCode.PARAM_INVALID, "步数记录日期不能晚于今天");
+                }
+                records.add(new StepRecord(timestamp, steps, recordDate));
+            } catch (DateTimeException exception) {
+                throw new BusinessException(ResultCode.PARAM_INVALID, "步数记录时间超出有效范围");
+            }
+        }
+        records.sort(Comparator.comparingLong(StepRecord::timestamp));
+        return records;
+    }
+
+    private record StepRecord(long timestamp, int steps, LocalDate recordDate) {
+    }
+
+    private void validateConfiguration() {
+        if (stepToKmRate == null || stepToKmRate <= 0
+                || dailyStepLimit == null || dailyStepLimit <= 0
+                || anomalyThreshold == null || anomalyThreshold <= 0
+                || maxSyncRecords == null || maxSyncRecords <= 0
+                || totalDistance == null || totalDistance.signum() <= 0) {
+            throw new IllegalStateException("Invalid sport service configuration");
         }
     }
 
@@ -160,24 +186,19 @@ public class StepSyncService {
      * 填充今日统计信息（兜底逻辑）
      */
     private SyncResult fillTodayStats(Long userId, SyncResult result) {
-        if (result.getTodaySteps() == null) {
-            DailySteps todayRecord = dailyStepsMapper.selectByUserIdAndDate(userId, LocalDate.now());
-            if (todayRecord != null) {
-                result.setTodaySteps(todayRecord.getValidSteps());
-                int rate = (stepToKmRate != null && stepToKmRate > 0) ? stepToKmRate : 2000;
-                result.setTodayMileage(BigDecimal.valueOf(todayRecord.getValidSteps())
-                        .divide(BigDecimal.valueOf(rate), 2, RoundingMode.DOWN));
-            } else {
-                result.setTodaySteps(0);
-                result.setTodayMileage(BigDecimal.ZERO);
-            }
+        DailySteps todayRecord = dailyStepsMapper.selectByUserIdAndDate(userId, LocalDate.now());
+        if (todayRecord != null) {
+            result.setTodaySteps(todayRecord.getValidSteps());
+            result.setTodayMileage(BigDecimal.valueOf(todayRecord.getValidSteps())
+                    .divide(BigDecimal.valueOf(stepToKmRate), 2, RoundingMode.DOWN));
+        } else {
+            result.setTodaySteps(0);
+            result.setTodayMileage(BigDecimal.ZERO);
         }
-        
-        if (result.getTotalMileage() == null) {
-            User user = userMapper.selectById(userId);
-            if (user != null) {
-                result.setTotalMileage(user.getTotalMileage());
-            }
+
+        User user = userMapper.selectById(userId);
+        if (user != null) {
+            result.setTotalMileage(user.getTotalMileage() == null ? BigDecimal.ZERO : user.getTotalMileage());
         }
         return result;
     }
@@ -193,6 +214,7 @@ public class StepSyncService {
 
         // 2. 计算有效步数(上限裁剪)
         int validSteps = Math.min(rawSteps, dailyStepLimit);
+        int creditedSteps = validSteps;
 
         // 3. 计算里程增量
         BigDecimal mileageDelta = BigDecimal.valueOf(validSteps)
@@ -212,6 +234,9 @@ public class StepSyncService {
             dailySteps.setSyncTime(LocalDateTime.now());
             dailyStepsMapper.insert(dailySteps);
         } else {
+            if (dailySteps.getRawSteps() != null && rawSteps <= dailySteps.getRawSteps()) {
+                return BigDecimal.ZERO;
+            }
             // 更新(步数可能增加)
             int oldValidSteps = dailySteps.getValidSteps();
             dailySteps.setRawSteps(rawSteps);
@@ -226,8 +251,12 @@ public class StepSyncService {
             if (stepsDiff <= 0) {
                 return BigDecimal.ZERO;
             }
-            mileageDelta = BigDecimal.valueOf(stepsDiff)
+            creditedSteps = stepsDiff;
+            BigDecimal oldMileage = BigDecimal.valueOf(oldValidSteps)
                     .divide(BigDecimal.valueOf(stepToKmRate), 2, RoundingMode.DOWN);
+            BigDecimal newMileage = BigDecimal.valueOf(validSteps)
+                    .divide(BigDecimal.valueOf(stepToKmRate), 2, RoundingMode.DOWN);
+            mileageDelta = newMileage.subtract(oldMileage);
         }
 
         // 5. 写入里程流水
@@ -235,7 +264,7 @@ public class StepSyncService {
             MileageLedger ledger = new MileageLedger();
             ledger.setUserId(userId);
             ledger.setRecordDate(recordDate);
-            ledger.setSteps(validSteps);
+            ledger.setSteps(creditedSteps);
             ledger.setMileageDelta(mileageDelta);
             ledger.setMileageBefore(currentMileage);
             ledger.setMileageAfter(currentMileage.add(mileageDelta));
@@ -285,9 +314,6 @@ public class StepSyncService {
                 nodeInfo.setMileageThreshold(node.getMileageThreshold());
                 newUnlocked.add(nodeInfo);
 
-                // 发送节点解锁事件
-                stepEventProducer.sendNodeUnlockedEvent(userId, node.getId(), LocalDateTime.now());
-
                 log.info("用户解锁节点: userId={}, nodeId={}, nodeName={}", 
                         userId, node.getId(), node.getNodeName());
             }
@@ -304,19 +330,24 @@ public class StepSyncService {
         if (user == null) {
             throw new BusinessException(ResultCode.USER_NOT_FOUND);
         }
+        if (!Integer.valueOf(1).equals(user.getStatus())) {
+            throw new BusinessException(ResultCode.FORBIDDEN, "用户已被禁用");
+        }
 
         ProgressVO vo = new ProgressVO();
-        vo.setTotalMileage(user.getTotalMileage());
-        vo.setTotalSteps(user.getTotalSteps());
-        vo.setTotalDistance(BigDecimal.valueOf(25000)); // 长征总里程
-        vo.setContinuousDays(user.getContinuousDays());
-        vo.setTotalDays(dailyStepsMapper.countDaysByUserId(userId));
+        BigDecimal userMileage = user.getTotalMileage() == null ? BigDecimal.ZERO : user.getTotalMileage();
+        vo.setTotalMileage(userMileage);
+        vo.setTotalSteps(user.getTotalSteps() == null ? 0L : user.getTotalSteps());
+        vo.setTotalDistance(totalDistance);
+        vo.setContinuousDays(user.getContinuousDays() == null ? 0 : user.getContinuousDays());
+        Integer totalDays = dailyStepsMapper.countDaysByUserId(userId);
+        vo.setTotalDays(totalDays == null ? 0 : totalDays);
 
         // 计算进度百分比
-        BigDecimal progress = user.getTotalMileage()
-                .divide(BigDecimal.valueOf(25000), 4, RoundingMode.DOWN)
+        BigDecimal progress = userMileage
+                .divide(totalDistance, 4, RoundingMode.DOWN)
                 .multiply(BigDecimal.valueOf(100));
-        vo.setProgressPercent(progress);
+        vo.setProgressPercent(progress.min(BigDecimal.valueOf(100)));
 
         // 获取今日步数
         DailySteps todaySteps = dailyStepsMapper.selectByUserIdAndDate(userId, LocalDate.now());
@@ -333,12 +364,12 @@ public class StepSyncService {
         Long unlockedCount = userNodeProgressMapper.countUnlockedByUserId(userId);
         Long totalCount = routeNodeMapper.selectCount(
                 new LambdaQueryWrapper<RouteNode>().eq(RouteNode::getStatus, 1));
-        vo.setUnlockedNodeCount(unlockedCount.intValue());
-        vo.setTotalNodeCount(totalCount.intValue());
+        vo.setUnlockedNodeCount(unlockedCount == null ? 0 : unlockedCount.intValue());
+        vo.setTotalNodeCount(totalCount == null ? 0 : totalCount.intValue());
 
         // 当前节点和下一节点
-        RouteNode currentNode = routeNodeMapper.selectCurrentNode(user.getTotalMileage());
-        RouteNode nextNode = routeNodeMapper.selectNextNode(user.getTotalMileage());
+        RouteNode currentNode = routeNodeMapper.selectCurrentNode(userMileage);
+        RouteNode nextNode = routeNodeMapper.selectNextNode(userMileage);
 
         if (currentNode != null) {
             ProgressVO.NodeInfo current = new ProgressVO.NodeInfo();
@@ -353,7 +384,7 @@ public class StepSyncService {
             next.setNodeId(nextNode.getId());
             next.setNodeName(nextNode.getNodeName());
             next.setMileageThreshold(nextNode.getMileageThreshold());
-            next.setRemainingMileage(nextNode.getMileageThreshold().subtract(user.getTotalMileage()));
+            next.setRemainingMileage(nextNode.getMileageThreshold().subtract(userMileage));
             vo.setNextNode(next);
         }
 

@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const config = require('../../config/index')
+const { removeLocalAvatar } = require('../../utils/avatar')
 
 Page({
   data: {
@@ -169,6 +170,8 @@ Page({
             content: '确定要清除本地缓存吗？',
             success: (r) => {
               if (r.confirm) {
+                const storedUserInfo = wx.getStorageSync('userInfo') || {}
+                removeLocalAvatar(storedUserInfo.avatarUrl)
                 wx.clearStorageSync()
                 wx.showToast({ title: '清除成功', icon: 'success' })
               }

@@ -1,6 +1,5 @@
 package com.changzheng.rank.controller;
 
-import com.changzheng.common.context.UserContext;
 import com.changzheng.common.result.R;
 import com.changzheng.rank.dto.MyRankDTO;
 import com.changzheng.rank.service.RankService;
@@ -9,6 +8,9 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.util.Map;
 
@@ -19,6 +21,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/rank")
 @RequiredArgsConstructor
+@Validated
 public class RankController {
 
     private final RankService rankService;
@@ -30,8 +33,8 @@ public class RankController {
     @Operation(summary = "总榜")
     @GetMapping("/total")
     public R<Map<String, Object>> getTotalRank(
-            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") int pageSize
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") @Min(1) int page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize
     ) {
         Map<String, Object> result = rankService.getTotalRank(page, pageSize);
         return R.ok(result);
@@ -43,13 +46,10 @@ public class RankController {
     @Operation(summary = "年级榜")
     @GetMapping("/grade")
     public R<Map<String, Object>> getGradeRank(
-            @RequestHeader(value = "X-User-Id", required = false) Long userId,
-            @Parameter(description = "页码") @RequestParam(defaultValue = "1") int page,
-            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") int pageSize
+            @RequestHeader("X-User-Id") Long userId,
+            @Parameter(description = "页码") @RequestParam(defaultValue = "1") @Min(1) int page,
+            @Parameter(description = "每页数量") @RequestParam(defaultValue = "20") @Min(1) @Max(100) int pageSize
     ) {
-        if (userId == null) {
-            return R.fail("请先登录");
-        }
         Map<String, Object> result = rankService.getGradeRank(userId, page, pageSize);
         return R.ok(result);
     }
@@ -60,11 +60,8 @@ public class RankController {
     @Operation(summary = "我的排名")
     @GetMapping("/my")
     public R<MyRankDTO> getMyRank(
-            @RequestHeader(value = "X-User-Id", required = false) Long userId
+            @RequestHeader("X-User-Id") Long userId
     ) {
-        if (userId == null) {
-            return R.fail("请先登录");
-        }
         MyRankDTO result = rankService.getMyRank(userId);
         return R.ok(result);
     }

@@ -2,6 +2,7 @@
 const app = getApp()
 const api = require('../../utils/api')
 const config = require('../../config/index')
+const { isHttpsUrl, persistAvatarUrl } = require('../../utils/avatar')
 
 Page({
   data: {
@@ -57,10 +58,11 @@ Page({
     this.setData({ loading: true })
     
     try {
+      const savedAvatarUrl = await persistAvatarUrl(tempAvatarUrl, avatarUrl)
       // 更新全局数据
       app.globalData.userInfo = {
         ...app.globalData.userInfo,
-        avatarUrl: tempAvatarUrl || app.globalData.userInfo.avatarUrl,
+        avatarUrl: savedAvatarUrl,
         nickName: tempNickName || app.globalData.userInfo.nickName
       }
       
@@ -70,11 +72,11 @@ Page({
       // 同步到后端(非Mock模式)
       if (!config.useMock && app.globalData.isLogin) {
         try {
-          await api.updateUserProfile({
-            nickName: tempNickName,
-            avatarUrl: tempAvatarUrl
-          })
-          console.log('头像昵称已同步到后端')
+          const profile = { nickName: tempNickName }
+          if (isHttpsUrl(savedAvatarUrl)) {
+            profile.avatarUrl = savedAvatarUrl
+          }
+          await api.updateUserProfile(profile)
         } catch (e) {
           console.error('同步头像昵称到后端失败', e)
           // 即使同步失败也继续，本地已保存
@@ -82,12 +84,13 @@ Page({
       }
       
       this.setData({
-        avatarUrl: tempAvatarUrl,
+        avatarUrl: savedAvatarUrl,
+        tempAvatarUrl: savedAvatarUrl,
         nickName: tempNickName
       })
       
       wx.showToast({
-        title: '保存成功',
+        title: isHttpsUrl(savedAvatarUrl) || !savedAvatarUrl ? '保存成功' : '头像已保存到本机',
         icon: 'success',
         duration: 1500
       })
