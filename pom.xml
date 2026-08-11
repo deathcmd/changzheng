@@ -11,6 +11,14 @@
     <name>云上重走长征路</name>
     <description>高校主题教育类微信小程序后端服务</description>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
     <modules>
         <module>changzheng-common</module>
         <module>changzheng-gateway</module>

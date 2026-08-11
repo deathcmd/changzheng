@@ -5,6 +5,7 @@
 将微信运动数据映射到虚拟长征路线的高校主题教育与运动学习平台。
 
 [![CI](https://github.com/deathcmd/changzheng/actions/workflows/ci.yml/badge.svg)](https://github.com/deathcmd/changzheng/actions/workflows/ci.yml)
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
 ![Java 17](https://img.shields.io/badge/Java-17-ED8B00?logo=openjdk&logoColor=white)
 ![Spring Boot 3.2](https://img.shields.io/badge/Spring%20Boot-3.2-6DB33F?logo=springboot&logoColor=white)
 ![Vue 3](https://img.shields.io/badge/Vue-3-4FC08D?logo=vuedotjs&logoColor=white)
@@ -164,6 +165,6 @@ cp .env.example .env
 - [贡献指南](CONTRIBUTING.md)
 - [安全策略](SECURITY.md)
 
-## 许可证状态
+## 开源许可证
 
-当前仓库尚未声明开源许可证。在项目权利人确认并添加许可证前，源代码的复制、修改和再分发不视为已获授权。
+本项目采用 [Apache License 2.0](LICENSE) 开源。使用、修改和分发时请遵守许可证条款，并保留 [NOTICE](NOTICE) 中的版权声明。
