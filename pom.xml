@@ -50,11 +50,11 @@
         <!-- Tools -->
         <hutool.version>5.8.47</hutool.version>
         <poi.version>5.5.1</poi.version>
-        <netty.version>4.1.136.Final</netty.version>
-        <jackson.version>2.21.5</jackson.version>
-        <commons-lang3.version>3.18.0</commons-lang3.version>
-        <bouncycastle.version>1.84</bouncycastle.version>
-        <protobuf.version>3.25.8</protobuf.version>
+        <netty.version>4.1.137.Final</netty.version>
+        <jackson.version>2.22.1</jackson.version>
+        <commons-lang3.version>3.20.0</commons-lang3.version>
+        <bouncycastle.version>1.85.2</bouncycastle.version>
+        <protobuf.version>3.25.9</protobuf.version>
         <lombok.version>1.18.46</lombok.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <knife4j.version>4.5.0</knife4j.version>
