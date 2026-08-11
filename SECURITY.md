@@ -21,6 +21,7 @@ Changes to authentication, gateway routing, identity headers, file upload/delete
 - The gateway and each Servlet service validate JWTs independently.
 - Protected Servlet requests re-check account status so disabling a student or administrator revokes existing access tokens.
 - Student, administrator, and refresh tokens have separate role and usage checks.
+- Servlet APIs are stateless and accept authentication only through an explicit `Authorization` bearer token. They do not use browser cookies or server-side sessions; CSRF protection is therefore intentionally disabled, while CORS is restricted to the configured origin and disallows credentialed requests.
 - Client-supplied identity headers are removed and rebuilt from verified token claims.
 - Administrator login failures are atomically rate-limited with a fail-closed Redis dependency.
 - Student binding and step synchronization serialize conflicting writes; content access requires an unlocked node and active user.

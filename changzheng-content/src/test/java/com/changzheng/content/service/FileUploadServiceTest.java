@@ -39,6 +39,37 @@ class FileUploadServiceTest {
     }
 
     @Test
+    void mapsUserMetadataToFixedPathComponents() throws Exception {
+        byte[] png = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "../../outside.png", "image/png", png);
+
+        var result = service.uploadFile(file, "image");
+
+        assertEquals("outside.png", result.get("filename"));
+        assertTrue(result.get("path").startsWith("image/"));
+        assertTrue(uploadRoot.resolve(result.get("path")).normalize().startsWith(uploadRoot));
+    }
+
+    @Test
+    void rejectsUnknownOrPathLikeUploadCategory() {
+        byte[] png = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+        MockMultipartFile file = new MockMultipartFile("file", "image.png", "image/png", png);
+
+        assertThrows(IllegalArgumentException.class, () -> service.uploadFile(file, "document"));
+        assertThrows(IllegalArgumentException.class, () -> service.uploadFile(file, "../image"));
+        assertThrows(IllegalArgumentException.class, () -> service.uploadFile(file, null));
+    }
+
+    @Test
+    void rejectsExtensionFromDifferentUploadCategory() {
+        byte[] png = new byte[] {(byte) 0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a};
+        MockMultipartFile file = new MockMultipartFile("file", "image.png", "image/png", png);
+
+        assertThrows(IllegalArgumentException.class, () -> service.uploadFile(file, "audio"));
+    }
+
+    @Test
     void rejectsExtensionAndContentMismatch() {
         byte[] jpeg = new byte[] {(byte) 0xff, (byte) 0xd8, (byte) 0xff, 0x00};
         MockMultipartFile file = new MockMultipartFile("file", "disguised.png", "image/png", jpeg);

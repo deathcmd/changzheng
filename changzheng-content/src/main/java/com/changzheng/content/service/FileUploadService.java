@@ -32,31 +32,116 @@ public class FileUploadService {
     @Value("${file.upload.max-size:104857600}")
     private long maxFileSize; // 默认100MB
 
-    // 允许的文件类型
-    private static final Map<String, Set<String>> ALLOWED_TYPES = Map.of(
-        "image", Set.of("jpg", "jpeg", "png", "gif", "webp", "bmp"),
-        "audio", Set.of("mp3", "wav", "ogg", "m4a", "flac", "aac"),
-        "video", Set.of("mp4", "avi", "mov", "wmv", "flv", "mkv", "webm")
-    );
+    /**
+     * User-controlled upload metadata is converted to fixed constants before it
+     * can become part of a filesystem path.
+     */
+    private enum UploadType {
+        IMAGE("image"),
+        AUDIO("audio"),
+        VIDEO("video");
+
+        private final String directory;
+
+        UploadType(String directory) {
+            this.directory = directory;
+        }
+
+        String directory() {
+            return directory;
+        }
+
+        static UploadType from(String value) {
+            return switch (value == null ? "" : value) {
+                case "image" -> IMAGE;
+                case "audio" -> AUDIO;
+                case "video" -> VIDEO;
+                default -> throw new IllegalArgumentException("不支持的文件分类");
+            };
+        }
+    }
+
+    private enum UploadExtension {
+        JPG(".jpg", UploadType.IMAGE),
+        JPEG(".jpeg", UploadType.IMAGE),
+        PNG(".png", UploadType.IMAGE),
+        GIF(".gif", UploadType.IMAGE),
+        WEBP(".webp", UploadType.IMAGE),
+        BMP(".bmp", UploadType.IMAGE),
+        MP3(".mp3", UploadType.AUDIO),
+        WAV(".wav", UploadType.AUDIO),
+        OGG(".ogg", UploadType.AUDIO),
+        M4A(".m4a", UploadType.AUDIO),
+        FLAC(".flac", UploadType.AUDIO),
+        AAC(".aac", UploadType.AUDIO),
+        MP4(".mp4", UploadType.VIDEO),
+        AVI(".avi", UploadType.VIDEO),
+        MOV(".mov", UploadType.VIDEO),
+        WMV(".wmv", UploadType.VIDEO),
+        FLV(".flv", UploadType.VIDEO),
+        MKV(".mkv", UploadType.VIDEO),
+        WEBM(".webm", UploadType.VIDEO);
+
+        private final String suffix;
+        private final UploadType type;
+
+        UploadExtension(String suffix, UploadType type) {
+            this.suffix = suffix;
+            this.type = type;
+        }
+
+        String suffix() {
+            return suffix;
+        }
+
+        static UploadExtension from(String filename, UploadType expectedType) {
+            String extension = getFileExtension(filename).toLowerCase(Locale.ROOT);
+            UploadExtension result = switch (extension) {
+                case "jpg" -> JPG;
+                case "jpeg" -> JPEG;
+                case "png" -> PNG;
+                case "gif" -> GIF;
+                case "webp" -> WEBP;
+                case "bmp" -> BMP;
+                case "mp3" -> MP3;
+                case "wav" -> WAV;
+                case "ogg" -> OGG;
+                case "m4a" -> M4A;
+                case "flac" -> FLAC;
+                case "aac" -> AAC;
+                case "mp4" -> MP4;
+                case "avi" -> AVI;
+                case "mov" -> MOV;
+                case "wmv" -> WMV;
+                case "flv" -> FLV;
+                case "mkv" -> MKV;
+                case "webm" -> WEBM;
+                default -> throw new IllegalArgumentException("不支持的文件扩展名");
+            };
+            if (result.type != expectedType) {
+                throw new IllegalArgumentException("文件扩展名与上传分类不匹配");
+            }
+            return result;
+        }
+    }
 
     /**
      * 上传单个文件
      */
     public Map<String, String> uploadFile(MultipartFile file, String type) throws IOException {
-        // 验证文件
-        validateFile(file, type);
+        UploadType uploadType = UploadType.from(type);
+        UploadExtension extension = validateFile(file, uploadType);
 
         // 生成文件路径
         String dateDir = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
-        String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
-        String extension = getFileExtension(originalFilename);
-        String newFilename = UUID.randomUUID().toString().replace("-", "") + "." + extension;
+        String originalFilename = safeDisplayFilename(file.getOriginalFilename());
+        String newFilename = UUID.randomUUID().toString().replace("-", "") + extension.suffix();
 
         // 创建目录，并在写入前验证目录没有通过符号链接逃逸上传根目录。
         Path root = Paths.get(basePath).toAbsolutePath().normalize();
         Files.createDirectories(root);
         Path realRoot = root.toRealPath();
-        Path uploadDir = root.resolve(type).resolve(dateDir).normalize();
+        Path uploadDir = root.resolve(uploadType.directory()).resolve(dateDir).normalize();
         Files.createDirectories(uploadDir);
         Path realUploadDir = uploadDir.toRealPath();
         if (!realUploadDir.startsWith(realRoot)) {
@@ -72,13 +157,13 @@ public class FileUploadService {
         log.info("文件上传成功: {}", newFilename);
 
         // 返回结果
-        String relativePath = type + "/" + dateDir + "/" + newFilename;
+        String relativePath = uploadType.directory() + "/" + dateDir + "/" + newFilename;
         Map<String, String> result = new HashMap<>();
         result.put("filename", originalFilename);
         result.put("path", relativePath);
         result.put("url", baseUrl + "/" + relativePath);
         result.put("size", String.valueOf(file.getSize()));
-        result.put("type", type);
+        result.put("type", uploadType.directory());
 
         return result;
     }
@@ -129,7 +214,7 @@ public class FileUploadService {
     /**
      * 验证文件
      */
-    private void validateFile(MultipartFile file, String type) {
+    private UploadExtension validateFile(MultipartFile file, UploadType type) {
         if (file.isEmpty()) {
             throw new IllegalArgumentException("文件不能为空");
         }
@@ -143,11 +228,7 @@ public class FileUploadService {
             throw new IllegalArgumentException("文件名不能为空");
         }
 
-        String extension = getFileExtension(filename).toLowerCase();
-        Set<String> allowedExtensions = ALLOWED_TYPES.get(type);
-        if (allowedExtensions == null || !allowedExtensions.contains(extension)) {
-            throw new IllegalArgumentException("不支持的文件类型: " + extension);
-        }
+        UploadExtension extension = UploadExtension.from(filename, type);
 
         try (InputStream inputStream = file.getInputStream()) {
             byte[] header = inputStream.readNBytes(16);
@@ -157,38 +238,38 @@ public class FileUploadService {
         } catch (IOException exception) {
             throw new IllegalArgumentException("无法读取上传文件", exception);
         }
+        return extension;
     }
 
-    private boolean hasAllowedSignature(byte[] bytes, String type, String extension) {
+    private boolean hasAllowedSignature(byte[] bytes, UploadType type, UploadExtension extension) {
         if (bytes.length < 4) return false;
         return switch (type) {
-            case "image" -> switch (extension) {
-                case "jpg", "jpeg" -> startsWith(bytes, 0xFF, 0xD8, 0xFF);
-                case "png" -> startsWith(bytes, 0x89, 0x50, 0x4E, 0x47);
-                case "gif" -> ascii(bytes, 0, "GIF87a") || ascii(bytes, 0, "GIF89a");
-                case "bmp" -> ascii(bytes, 0, "BM");
-                case "webp" -> ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP");
+            case IMAGE -> switch (extension) {
+                case JPG, JPEG -> startsWith(bytes, 0xFF, 0xD8, 0xFF);
+                case PNG -> startsWith(bytes, 0x89, 0x50, 0x4E, 0x47);
+                case GIF -> ascii(bytes, 0, "GIF87a") || ascii(bytes, 0, "GIF89a");
+                case BMP -> ascii(bytes, 0, "BM");
+                case WEBP -> ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WEBP");
                 default -> false;
             };
-            case "audio" -> switch (extension) {
-                case "mp3" -> ascii(bytes, 0, "ID3") || startsWith(bytes, 0xFF, 0xFB)
+            case AUDIO -> switch (extension) {
+                case MP3 -> ascii(bytes, 0, "ID3") || startsWith(bytes, 0xFF, 0xFB)
                         || startsWith(bytes, 0xFF, 0xF3) || startsWith(bytes, 0xFF, 0xF2);
-                case "wav" -> ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WAVE");
-                case "ogg" -> ascii(bytes, 0, "OggS");
-                case "flac" -> ascii(bytes, 0, "fLaC");
-                case "m4a" -> bytes.length >= 12 && ascii(bytes, 4, "ftyp");
-                case "aac" -> startsWith(bytes, 0xFF, 0xF1) || startsWith(bytes, 0xFF, 0xF9);
+                case WAV -> ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "WAVE");
+                case OGG -> ascii(bytes, 0, "OggS");
+                case FLAC -> ascii(bytes, 0, "fLaC");
+                case M4A -> bytes.length >= 12 && ascii(bytes, 4, "ftyp");
+                case AAC -> startsWith(bytes, 0xFF, 0xF1) || startsWith(bytes, 0xFF, 0xF9);
                 default -> false;
             };
-            case "video" -> switch (extension) {
-                case "mp4", "mov" -> bytes.length >= 12 && ascii(bytes, 4, "ftyp");
-                case "mkv", "webm" -> startsWith(bytes, 0x1A, 0x45, 0xDF, 0xA3);
-                case "flv" -> ascii(bytes, 0, "FLV");
-                case "avi" -> ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "AVI ");
-                case "wmv" -> startsWith(bytes, 0x30, 0x26, 0xB2, 0x75);
+            case VIDEO -> switch (extension) {
+                case MP4, MOV -> bytes.length >= 12 && ascii(bytes, 4, "ftyp");
+                case MKV, WEBM -> startsWith(bytes, 0x1A, 0x45, 0xDF, 0xA3);
+                case FLV -> ascii(bytes, 0, "FLV");
+                case AVI -> ascii(bytes, 0, "RIFF") && ascii(bytes, 8, "AVI ");
+                case WMV -> startsWith(bytes, 0x30, 0x26, 0xB2, 0x75);
                 default -> false;
             };
-            default -> false;
         };
     }
 
@@ -212,11 +293,17 @@ public class FileUploadService {
     /**
      * 获取文件扩展名
      */
-    private String getFileExtension(String filename) {
+    private static String getFileExtension(String filename) {
         int dotIndex = filename.lastIndexOf('.');
         if (dotIndex > 0 && dotIndex < filename.length() - 1) {
             return filename.substring(dotIndex + 1);
         }
         return "";
+    }
+
+    private String safeDisplayFilename(String filename) {
+        String normalized = StringUtils.cleanPath(filename.replace('\\', '/'));
+        String basename = StringUtils.getFilename(normalized);
+        return basename == null ? "upload" : basename;
     }
 }
