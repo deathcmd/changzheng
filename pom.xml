@@ -51,7 +51,7 @@
         <hutool.version>5.8.47</hutool.version>
         <poi.version>5.5.1</poi.version>
         <netty.version>4.1.137.Final</netty.version>
-        <jackson.version>2.22.1</jackson.version>
+        <jackson.version>2.22.2</jackson.version>
         <commons-lang3.version>3.20.0</commons-lang3.version>
         <bouncycastle.version>1.85.2</bouncycastle.version>
         <protobuf.version>3.25.9</protobuf.version>
