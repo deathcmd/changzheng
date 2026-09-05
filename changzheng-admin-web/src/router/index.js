@@ -29,7 +29,7 @@ const routes = [
         path: 'nodes/:id/content',
         name: 'NodeContent',
         component: () => import('@/views/node/content.vue'),
-        meta: { title: '内容管理', hidden: true }
+        meta: { title: '内容管理', hidden: true, activeMenu: '/nodes' }
       },
       {
         path: 'students',

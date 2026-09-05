@@ -401,7 +401,7 @@ cd changzheng
 | Git | 当前受支持版本 | 获取源码和参与贡献 |
 | JDK | 17 | 编译和运行所有 Java 模块 |
 | Maven | 无需全局安装 | 仓库 Wrapper 固定并校验 Maven 3.9.11 |
-| Node.js | 20.19+ 或 22.12+ | 构建管理端并检查小程序 JavaScript |
+| Node.js | 24.x LTS（推荐）或 22.12+ | CI 使用 24.x；构建管理端并检查小程序 JavaScript |
 | npm | 与 Node.js 配套 | 按 lockfile 安装管理端依赖 |
 | Docker Engine | 支持 Compose 插件 | 启动 MySQL、Redis、Nacos、服务和 Nginx |
 | Bash | Linux/macOS/WSL/Git Bash | 执行 `deploy.sh` |
@@ -620,15 +620,29 @@ MySQL 初始化目录不会对已有数据卷重复执行。升级时必须：
 - 节点请求参数校验与节点管理；
 - 学生解绑、停用和数据一致性。
 
-仓库当前验证基线为 11 个 Java 测试套件、33 项测试。该数字会随贡献变化，是否通过以最新 CI 为准。
+管理端请求拦截器还覆盖令牌附加、二进制响应、登录失效确认/取消和单次退出跳转；小程序请求测试覆盖异常响应、网络错误、查询参数、并发令牌刷新和上传错误。测试数量与结果以本次命令及最新 CI 输出为准。
+
+管理端 Chromium 回归测试使用真实生产构建，覆盖登录后返回嵌套路由、菜单跳转与高亮、取消退出和确认退出。测试在浏览器网络层提供固定 API 响应，不访问真实账户或学生数据，也不替代 MySQL、Redis 和微信接口联调。CI 使用仍处于支持期的 Node.js 24 LTS，版本生命周期见 [Node.js 官方发布计划](https://github.com/nodejs/Release#release-schedule)。
+
+```bash
+./mvnw --batch-mode --no-transfer-progress clean verify
+node --test changzheng-miniprogram/tests/*.test.cjs
+cd changzheng-admin-web
+npm ci --ignore-scripts
+npm test
+npm run build
+npx --no-install playwright install chromium
+npm run test:e2e
+npm audit --registry=https://registry.npmjs.org
+```
 
 ### GitHub Actions
 
 | Workflow | Job | 验证内容 |
 | --- | --- | --- |
 | CI | `backend` | Maven 8 模块 `clean verify` |
-| CI | `admin-web` | `npm ci --ignore-scripts`、Vite 构建、生产依赖审计 |
-| CI | `miniprogram` | 所有小程序 JavaScript 的 `node --check` |
+| CI | `admin-web` | `npm ci --ignore-scripts`、请求回归测试、Vite 构建、Chromium 登录/导航/退出测试、依赖审计 |
+| CI | `miniprogram` | 所有小程序 JavaScript 的 `node --check`、请求与令牌刷新回归测试 |
 | CI | `deployment-config` | `bash -n deploy.sh` 与 Compose 静态校验 |
 | CodeQL | Java | 手动编译后进行 Java 安全分析 |
 | CodeQL | JavaScript | 分析管理端和小程序 JavaScript/TypeScript |

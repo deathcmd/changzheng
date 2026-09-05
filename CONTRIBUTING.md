@@ -6,7 +6,7 @@ By intentionally submitting a contribution for inclusion in this repository, you
 
 ## Development checks
 
-Use JDK 17 and Node.js 20.19+ (or 22.12+). The checked-in Maven Wrapper pins Maven 3.9.11.
+Use JDK 17 and Node.js 24 LTS (or 22.12+). The checked-in Maven Wrapper pins Maven 3.9.11.
 
     ./mvnw --batch-mode --no-transfer-progress clean verify
     npm --prefix changzheng-admin-web ci --ignore-scripts

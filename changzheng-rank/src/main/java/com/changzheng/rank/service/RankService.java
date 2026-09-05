@@ -42,7 +42,7 @@ public class RankService {
      * 获取总榜（个人排行榜）
      */
     public Map<String, Object> getTotalRank(int page, int pageSize) {
-        int offset = (page - 1) * pageSize;
+        int offset = paginationOffset(page, pageSize);
         List<PersonalRankDTO> list = rankMapper.selectTotalRank(offset, pageSize);
         int total = rankMapper.countTotalRank();
         
@@ -75,7 +75,7 @@ public class RankService {
         }
         
         String grade = user.getGrade();
-        int offset = (page - 1) * pageSize;
+        int offset = paginationOffset(page, pageSize);
         List<PersonalRankDTO> list = rankMapper.selectRankByGrade(grade, offset, pageSize);
         int total = rankMapper.countRankByGrade(grade);
         
@@ -112,6 +112,15 @@ public class RankService {
         dto.setRank(rank != null ? rank : 0);
         
         return dto;
+    }
+
+    private int paginationOffset(int page, int pageSize) {
+        long offset = ((long) page - 1) * pageSize;
+        if (page < 1 || pageSize < 1 || pageSize > 100
+                || offset > Integer.MAX_VALUE - pageSize) {
+            throw new BusinessException(ResultCode.PARAM_INVALID, "分页参数超出有效范围");
+        }
+        return (int) offset;
     }
 
     private void requireActiveUser(User user) {

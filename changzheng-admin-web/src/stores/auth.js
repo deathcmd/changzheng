@@ -29,15 +29,11 @@ export const useAuthStore = defineStore('auth', () => {
       return { code: 200, data: { accessToken: mockToken, adminInfo: mockAdminInfo } }
     }
     
-    try {
-      const res = await login({ username, password })
-      token.value = res.data.accessToken
-      localStorage.setItem('token', token.value)
-      adminInfo.value = res.data.adminInfo
-      return res
-    } catch (error) {
-      throw error
-    }
+    const res = await login({ username, password })
+    token.value = res.data.accessToken
+    localStorage.setItem('token', token.value)
+    adminInfo.value = res.data.adminInfo
+    return res
   }
 
   async function fetchAdminInfo() {
