@@ -1,7 +1,6 @@
 import axios from 'axios'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '@/stores/auth'
-import router from '@/router'
 
 // 创建axios实例
 const request = axios.create({
@@ -45,6 +44,8 @@ request.interceptors.response.use(
         }).then(() => {
           const authStore = useAuthStore()
           authStore.logout()
+        }, () => {
+          // 取消或关闭提示框不是请求失败，不产生未处理的 Promise 拒绝。
         })
       }
       
@@ -61,7 +62,6 @@ request.interceptors.response.use(
       if (status === 401) {
         const authStore = useAuthStore()
         authStore.logout()
-        router.push('/login')
       } else if (status === 403) {
         ElMessage.error('没有操作权限')
       } else if (status === 404) {

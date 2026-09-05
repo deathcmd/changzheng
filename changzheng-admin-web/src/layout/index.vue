@@ -8,7 +8,7 @@
         <span class="logo-icon" v-else>🚩</span>
       </div>
       <el-menu
-        :default-active="$route.path"
+        :default-active="$route.meta.activeMenu || $route.path"
         :collapse="isCollapse"
         :router="true"
         background-color="#304156"
@@ -39,7 +39,7 @@
           <span>云上重走长征路</span>
         </div>
         <el-menu
-          :default-active="$route.path"
+          :default-active="$route.meta.activeMenu || $route.path"
           :router="true"
           background-color="#304156"
           text-color="#bfcbd9"
@@ -118,7 +118,7 @@ const drawerVisible = ref(false)
 
 const menuRoutes = computed(() => {
   const mainRoute = router.options.routes.find(r => r.path === '/')
-  return mainRoute?.children || []
+  return (mainRoute?.children || []).map(route => ({ ...route, path: `/${route.path}` }))
 })
 
 const checkMobile = () => {
@@ -154,6 +154,8 @@ function handleLogout() {
     type: 'warning'
   }).then(() => {
     authStore.logout()
+  }, () => {
+    // 取消或关闭确认框时保留当前登录状态。
   })
 }
 </script>

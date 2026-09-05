@@ -73,6 +73,11 @@ const request = (options) => {
 
         // HTTP状态码判断
         if (statusCode >= 200 && statusCode < 300) {
+          if (!responseData || typeof responseData !== 'object' || Array.isArray(responseData)
+            || typeof responseData.code !== 'number') {
+            reject(new Error('服务器响应格式不正确'))
+            return
+          }
           // 业务状态码判断
           if (responseData.code === 200) {
             resolve(responseData)
@@ -110,18 +115,19 @@ const request = (options) => {
       fail: (err) => {
         console.error('[Request Error]', err)
         // 网络错误处理
-        if (err.errMsg.includes('timeout')) {
+        const message = String(err?.errMsg || err?.message || '')
+        if (message.includes('timeout')) {
           wx.showToast({
             title: '请求超时，请检查网络',
             icon: 'none'
           })
-        } else if (err.errMsg.includes('fail')) {
+        } else {
           wx.showToast({
             title: '网络连接失败',
             icon: 'none'
           })
         }
-        reject(err)
+        reject(err || new Error('网络连接失败'))
       }
     })
   })
@@ -190,24 +196,23 @@ const handleTokenExpired = () => {
     showCancel: false,
     confirmText: '确定',
     success: () => {
-      isShowingExpiredModal = false
       wx.reLaunch({
         url: '/pages/authorize/authorize'
       })
-    }
+    },
+    complete: () => { isShowingExpiredModal = false }
   })
 }
 
 // GET请求
 const get = (url, params = {}, options = {}) => {
   // 将params转为query string
-  let queryString = ''
-  if (Object.keys(params).length > 0) {
-    queryString = '?' + Object.keys(params)
-      .filter(key => params[key] !== undefined && params[key] !== null)
-      .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
-      .join('&')
-  }
+  const query = Object.keys(params)
+    .filter(key => params[key] !== undefined && params[key] !== null)
+    .map(key => `${encodeURIComponent(key)}=${encodeURIComponent(params[key])}`)
+    .join('&')
+  const separator = url.includes('?') ? (/[?&]$/.test(url) ? '' : '&') : '?'
+  const queryString = query ? separator + query : ''
   
   return request({
     url: url + queryString,
@@ -272,10 +277,10 @@ const upload = (url, filePath, name = 'file', formData = {}) => {
       success: (res) => {
         try {
           const data = JSON.parse(res.data)
-          if (data.code === 200) {
+          if (res.statusCode >= 200 && res.statusCode < 300 && data.code === 200) {
             resolve(data)
           } else {
-            reject(new Error(data.msg || '上传失败'))
+            reject(new Error(data.message || data.msg || '上传失败'))
           }
         } catch (e) {
           reject(new Error('解析响应失败'))
